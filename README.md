@@ -1,5 +1,37 @@
 # agent-university
 
+## python agent tick
+
+```mermaid
+flowchart TD
+    PyAgent["Agent Init"] --> A["Wait Wake Up Condition 等待唤醒"]
+    -->AAA
+    subgraph AAA["Thread 新线程"]
+        direction LR
+        TT1["New Thread Begin 线程启动"]
+        TT1 --> BBB
+        TT1 --> TT2["Read UUID"] -->
+        TT3["Read Call History"] -->
+        TT4["LM Call Python Pre-process"] -->
+        TT5["LM Call"] -->
+        TT6["LM Call Python Post-process"] -->
+        TT7["Redis Com and Final Render"] -->
+        TT8["Select Next Agents To Wake Up"] -->
+        TT9["Wake Up Other Agents"] -->
+        TT10["Exit"]
+
+
+        TT5 --> Ta
+        Ta --> TT5
+        subgraph BBB["Thread 新线程2"]
+        Ta["Redis Com and Stream Render"]
+        end
+
+    end
+
+```
+
+
 ## unreal agent tick
 ```mermaid
 flowchart TD
