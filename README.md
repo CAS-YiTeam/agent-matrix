@@ -1,5 +1,19 @@
 # agent-university
 
+## unreal agent tick
+```mermaid
+flowchart TD
+    subgraph Tick
+        direction LR
+        Tick_S["Tick Begin"] 
+        --> Tick_A["Hear from Redis"]
+        --> Tick_B["Update Status"]
+        --> Tick_C["Read Event"]
+        --> Tick_D["Do Event"]
+    end
+```
+
+
 ## agent university base class
 
 ```mermaid
