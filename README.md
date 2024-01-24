@@ -79,5 +79,5 @@ flowchart LR
     Z --> H["Windows Exe Agent"]
     Z --> I["Shell Exe Agent"]
     Z --> J["Realtime Voice Read Agent"]
-    Z --> J["Realtime Speaker Agent"]
+    Z --> J2["Realtime Speaker Agent"]
 ```
