@@ -1,5 +1,23 @@
 # agent-university
 
+## Initialize
+```mermaid
+flowchart LR
+    launch --> |"method 1"| MASTER>"python master mind"]
+    launch --> |"method 2"| UE2["Launch UE Client"]
+    UE2 --> Redis3["Join Redis Network"]
+    MASTER --> IF1{"Has UE ?"}
+    IF1 -->|"Yes"| UE["Launch UE Client"]
+    IF1 -->|"No"| UED["Download UE Client"]
+    UED --> UE
+    UE --> Redis2["Join Redis Network"]
+    UE2 --> MASTER2>"python master mind"]
+    MASTER --> Redis["Join Redis Network"]
+    MASTER2 --> Redis["Join Redis Network"]
+    Redis --> Wait["Wait Further Command"]
+    Wait --> Begin(("Begin Tasks"))
+```
+
 ## python agent tick
 
 ```mermaid
