@@ -1,5 +1,10 @@
 # agent-university
 
+Project's Core Conception: Achieving higher intelligence via **Nested** Agents
+
+![image](https://github.com/binary-husky/agent-university/assets/96192199/1e63278f-0453-4b84-83c7-deb7c92ac466)
+
+
 ## Initialize
 ```mermaid
 flowchart LR
