@@ -1,4 +1,4 @@
-# agent-university
+# Agent Matrix
 
 The Core Insight of This Project: Achieving Higher Intelligence via **Nested** Agents.
 
