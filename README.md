@@ -1,5 +1,9 @@
 # Agent Matrix
 
+<div align="center">
+<img src="https://github.com/binary-husky/agent-matrix/assets/96192199/a51c4498-a5be-4ff6-9625-fd344108cf1f" width="200" >
+</div>
+
 The Core Insight of This Project: Achieving Higher Intelligence via **Nested** Agents.
 
 ![image](https://github.com/binary-husky/agent-university/assets/96192199/1e63278f-0453-4b84-83c7-deb7c92ac466)
