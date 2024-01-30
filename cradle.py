@@ -17,15 +17,22 @@ import time
 
 # -=-=-=-=-=-=- 非阻塞式异步（await task） =-=-=-=-=-=-=-=
 
-async def nested():
+async def async_nested():
+    time.sleep(1)
+    print('async_nested')
+    return
+
+def nested():
+    # res = asyncio.run(async_nested())   # sys:1: RuntimeWarning: coroutine 'async_nested' was never awaited
+    loop = asyncio.get_event_loop()
+    loop.create_task(async_nested())
     time.sleep(1)
     print('nested')
-    await say_after()
     return
 
 async def say_after():
     # coroutine function里面，所有函数都要加await（如果想嵌套），太傻比了
-    await nested()
+    nested()
     await asyncio.sleep(1)
     print('say_after')
 
@@ -38,9 +45,11 @@ async def main(): # coroutine function
     
     res1 = await task1  # block 阻断
     res2 = await task2  # block 阻断
+    return 123
 
 coro = main()
-asyncio.run(coro)
+res = asyncio.run(coro)
+print(res)
 
 
 # using task group
