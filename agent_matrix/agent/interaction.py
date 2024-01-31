@@ -7,10 +7,18 @@ import threading
 from loguru import logger
 from queue import Queue
 from agent_matrix.agent.agent import Agent
+import networkx as nx
 
 class InteractionBuilder(object):
-    def __init__(self) -> None:
+    def __init__(self, agent_proxy) -> None:
+        self.agent_proxy = agent_proxy
+        self.interaction_graph = nx.DiGraph()  # Directed graph
         pass
 
-    def create_edge(self, src_agent, dst_agent, edge_color):
-        pass
+    def update_nodes(self):
+        children = self.agent_proxy.direct_children
+        for child in children:
+            self.interaction_graph.add_node(child.agent_id)
+
+    def create_edge(self, src_agent_id, dst_agent_id, channel):
+        self.interaction_graph.add_edge(src_agent_id, dst_agent_id, channel=channel)

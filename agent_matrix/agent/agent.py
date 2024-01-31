@@ -35,7 +35,7 @@ class Agent(object):
     def run(self):
         # 尝试连接，连接成功后会返回
         self.com_websocket = self.connect_to_matrix()
-        self.major_task()
+        self.begin_acquire_command()
 
     def major_task(self):
         print('enter major task')
@@ -44,5 +44,14 @@ class Agent(object):
         host = self.matrix_host
         port = str(self.matrix_port)
         self.websocket_connection = connect(f"ws://{host}:{port}/ws_agent")
-        self.websocket_connection.send(
-            pickle.dumps({"agent_id": self.agent_id}))
+        self.websocket_connection.send(pickle.dumps({"agent_id": self.agent_id}))
+
+    def begin_acquire_command(self):
+        while True:
+            msg = self.websocket_connection.recv()
+            msg = pickle.loads(msg)
+            if msg.command == "activate":
+                self.activate_agent()
+
+    def activate_agent(self):
+        pass

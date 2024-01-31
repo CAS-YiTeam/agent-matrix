@@ -17,16 +17,16 @@ for i in range(0, 3):
     agent_kwargs = {}
 
     # 在该位面中，创造一个智能体
-    agent = plane_0.create_agent(
+    agent = plane_0.create_child_agent(
         agent_id=f"plane_0_agent_{i}",
         agent_class=Agent,
         agent_kwargs=agent_kwargs
     )
 
 # 用明确的边连接定义智能体的交互
-plane_0.interaction_builder.create_edge(src_agent="plane_0_agent_0", dst_agent="plane_0_agent_1", edge_color="red")
-plane_0.interaction_builder.create_edge(src_agent="plane_0_agent_1", dst_agent="plane_0_agent_2", edge_color="red")
-plane_0.interaction_builder.create_edge(src_agent="plane_0_agent_2", dst_agent="plane_0_agent_3", edge_color="red")
+plane_0.interaction_builder.create_edge(src_agent="plane_0_agent_0", dst_agent="plane_0_agent_1", channel="red")
+plane_0.interaction_builder.create_edge(src_agent="plane_0_agent_1", dst_agent="plane_0_agent_2", channel="red")
+plane_0.interaction_builder.create_edge(src_agent="plane_0_agent_2", dst_agent="plane_0_agent_3", channel="red")
 
 # 好了，一切就绪，激活所有智能体，让他们开始工作
 for i in range(0, 3):

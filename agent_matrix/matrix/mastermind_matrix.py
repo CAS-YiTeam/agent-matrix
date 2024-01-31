@@ -13,11 +13,6 @@ from fastapi import FastAPI, WebSocket
 from agent_matrix.agent_proxy import AgentProxy
 
 
-class SubMatrixProxy(object):
-    # not defined yet
-    pass
-
-
 class MasterMindWebSocketServer():
 
     def __init__(self) -> None:
@@ -88,6 +83,7 @@ class MasterMindWebSocketServer():
             async def _register_incoming_sub_matrix(websocket: WebSocket):
                 await websocket.accept()
                 data = await websocket.receive_text()
+                raise NotImplementedError()
                 self.connected_sub_matrix.append(
                     SubMatrixProxy(websocket=websocket, data=data))
 
@@ -140,6 +136,8 @@ class MasterMindMatrix(MasterMindWebSocketServer):
         # TODO
         if parent is None:
             self.direct_children.append(agent_proxy)
+        else:
+            parent.direct_children.append(agent_proxy)
 
     def create_agent(self,
                      agent_id: str,
@@ -187,6 +185,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                     "--agent-kwargs", json.dumps(agent_kwargs),
                 )
             )
+
             # 接下来，我们需要等待智能体启动完成，并连接母体的websocket
             for i in reversed(range(30)):
                 logger.info(
@@ -204,5 +203,13 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                     f"agent {agent_id} failed to connect to matrix within the timeout limit")
                 return None
 
-    def create_agent_final(self, **kwargs):
+    def execute_create_agent(self, **kwargs):
+        """和create_agent一样
+        """
+        self.create_agent(**kwargs)
+
+    def create_child_agent(self, **kwargs):
+        """创建自己的子智能体
+        """
+        kwargs['parent'] = self
         self.create_agent(**kwargs)
