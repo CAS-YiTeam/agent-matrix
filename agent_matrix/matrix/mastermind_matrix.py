@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import uuid
 import json
 import platform
 import pickle
@@ -10,7 +11,8 @@ import subprocess
 from loguru import logger
 from queue import Queue
 from fastapi import FastAPI, WebSocket
-from agent_matrix.agent_proxy import AgentProxy
+from agent_matrix.agent.agent_proxy import AgentProxy
+from agent_matrix.msg.general_msg import GeneralMsg
 
 
 class MasterMindWebSocketServer():
@@ -20,26 +22,42 @@ class MasterMindWebSocketServer():
         pass
 
     async def maintain_agent_connection_forever(self, agent_id: str, websocket: WebSocket, client_id: str):
-        # send
         async def wait_message_to_send(message_queue_out: asyncio.Queue, agent_proxy: AgentProxy):
+            # 🚀 proxy agent -> real agent
             msg_cnt = 0
             while True:
-                kwargs = await message_queue_out.get()
+                # 🕜 wait message from the proxy agent
+                msg: GeneralMsg = await message_queue_out.get()
                 msg_cnt += 1
-                logger.info('sending client:', client_id, '\tcnt:',
-                            msg_cnt, '\tcontent:', kwargs)
-                await websocket.send(kwargs)
+                logger.info('sending agent:', agent_id, '\tcnt:', msg_cnt, '\tcommand:', msg.command)
+                if msg.dst == 'matrix':
+                    raise NotImplementedError()
+                else:
+                    # send the message to the real agent
+                    await websocket.send_bytes(pickle.dumps(msg))
 
-        # receive
         async def receive_forever(message_queue_in: asyncio.Queue, agent_proxy: AgentProxy):
+            # 🚀 real agent -> proxy agent
+            # 🚀 real agent -> matrix
             msg_cnt = 0
             while True:
-                kwargs = await websocket.receive_text()
+                # 🕜 wait websocket message from the real agent
+                msg: GeneralMsg = pickle.loads(await websocket.receive_bytes())
                 msg_cnt += 1
-                logger.info('receiving client:', client_id,
-                            '\tcnt:', msg_cnt, '\tcontent:', kwargs)
-                await message_queue_in.put(kwargs)
+                logger.info('receiving agent:', agent_id, '\tcnt:', msg_cnt, '\tcommand:', msg.command)
+                if msg.dst == 'matrix':
+                    raise NotImplementedError()
+                else:
+                    # deliver the message to the proxy agent
+                    await message_queue_in.put(msg)
 
+        message_queue_out, message_queue_in, agent_proxy = self.make_queue(agent_id, websocket, client_id)
+        t_x = asyncio.create_task(wait_message_to_send(message_queue_out, agent_proxy))
+        t_r = asyncio.create_task(receive_forever(message_queue_in, agent_proxy))
+        await t_x
+        await t_r
+
+    def make_queue(self, agent_id, websocket, client_id):
         message_queue_out = asyncio.Queue()
         message_queue_in = asyncio.Queue()
         assert agent_id in self.websocket_connections, f"agent_id {agent_id} not found in self.websocket_connections"
@@ -50,12 +68,8 @@ class MasterMindWebSocketServer():
             message_queue_out=message_queue_out,
             message_queue_in=message_queue_in
         )
-        t_x = asyncio.create_task(
-            wait_message_to_send(message_queue_out, agent_proxy))
-        t_r = asyncio.create_task(
-            receive_forever(message_queue_in, agent_proxy))
-        await t_x
-        await t_r
+
+        return message_queue_out, message_queue_in, agent_proxy
 
     async def long_task_01_wait_incoming_connection(self):
         # task 1 wait incoming agent connection
@@ -65,32 +79,31 @@ class MasterMindWebSocketServer():
             app = FastAPI()
 
             @app.websocket("/ws_agent")
-            async def _register_incoming_agents(websocket: WebSocket, client_id: str):
+            async def _register_incoming_agents(websocket: WebSocket):
                 await websocket.accept()
-                kwargs = await websocket.receive_text()
-                kwargs = pickle.loads(kwargs)
-                agent_id = kwargs['agent_id']
+                msg: GeneralMsg = pickle.loads(await websocket.receive_bytes())
+                if msg.dst != "matrix" or msg.command != "connect_to_matrix":
+                    raise ValueError()
+                agent_id = msg.kwargs['agent_id']
                 if agent_id in self.websocket_connections:
-                    logger.warning(
-                        f"agent_id {agent_id}, connection established")
+                    logger.warning(f"agent_id {agent_id}, connection established")
+                    client_id = uuid.uuid4().hex
                     await self.maintain_agent_connection_forever(agent_id, websocket, client_id)
                 else:
-                    logger.warning(
-                        f"agent_id {agent_id} un-known, connection aborted")
+                    logger.warning(f"agent_id {agent_id} un-known, connection aborted")
                     await websocket.close()
 
-            @app.websocket("/ws_sub_matrix")
-            async def _register_incoming_sub_matrix(websocket: WebSocket):
-                await websocket.accept()
-                data = await websocket.receive_text()
-                raise NotImplementedError()
-                self.connected_sub_matrix.append(
-                    SubMatrixProxy(websocket=websocket, data=data))
+            # @app.websocket("/ws_sub_matrix")
+            # async def _register_incoming_sub_matrix(websocket: WebSocket):
+            #     await websocket.accept()
+            #     data = await websocket.receive_bytes()
+            #     raise NotImplementedError()
+            #     self.connected_sub_matrix.append(
+            #         SubMatrixProxy(websocket=websocket, data=data))
 
             logger.info("uvicorn starts")
             import uvicorn
-            config = uvicorn.Config(
-                app, host=self.host, port=self.port, log_level="info")
+            config = uvicorn.Config(app, host=self.host, port=self.port, log_level="info")
             server = uvicorn.Server(config)
             await server.serve()
 
@@ -101,6 +114,7 @@ class MasterMindWebSocketServer():
 class MasterMindMatrix(MasterMindWebSocketServer):
 
     def __init__(self, host, port, dedicated_server=False):
+        super().__init__()
         self.host = host
         self.port = port
         self.dedicated_server = dedicated_server
@@ -117,10 +131,8 @@ class MasterMindMatrix(MasterMindWebSocketServer):
             await asyncio.sleep(1000)
 
     async def major_event_loop(self):
-        long_task_01 = asyncio.create_task(
-            self.long_task_01_wait_incoming_connection())
-        long_task_02 = asyncio.create_task(
-            self.long_task_03_exec_command_queue())
+        long_task_01 = asyncio.create_task(self.long_task_01_wait_incoming_connection())
+        long_task_02 = asyncio.create_task(self.long_task_03_exec_command_queue())
         await long_task_01
         await long_task_02
 
@@ -165,7 +177,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
             host = self.host
             port = self.port
 
-            # 创建一个Websocket连接代理
+            # 创建一个Agent在母体中的代理对象
             agent_proxy = AgentProxy(matrix=self, agent_id=agent_id)
             if agent_id in self.websocket_connections:
                 logger.error(
@@ -177,19 +189,19 @@ class MasterMindMatrix(MasterMindWebSocketServer):
             # 启动一个子进程，用于启动一个智能体
             subprocess.Popen(
                 args=(
-                    sys.executable, agent_launcher_abspath,
+                    sys.executable,
+                    agent_launcher_abspath,
                     "--agent-id", agent_id,
                     "--agent-class", agent_class,
-                    "--matrix-host", host,
-                    "--matrix-port", port,
+                    "--matrix-host", str(host),
+                    "--matrix-port", str(port),
                     "--agent-kwargs", json.dumps(agent_kwargs),
                 )
             )
 
-            # 接下来，我们需要等待智能体启动完成，并连接母体的websocket
+            # 🕜 接下来，我们需要等待智能体启动完成，并连接母体的websocket
             for i in reversed(range(30)):
-                logger.info(
-                    f"wait agent {agent_id} to connect to matrix, timeout in {i} seconds")
+                logger.info(f"wait agent {agent_id} to connect to matrix, timeout in {i} seconds")
                 agent_proxy.connected_event.wait(timeout=1)
                 if agent_proxy.connected_event.is_set():
                     break
@@ -199,17 +211,16 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                 logger.info(f"agent {agent_id} connected to matrix")
                 return agent_proxy
             else:
-                logger.error(
-                    f"agent {agent_id} failed to connect to matrix within the timeout limit")
+                logger.error(f"agent {agent_id} failed to connect to matrix within the timeout limit")
                 return None
 
     def execute_create_agent(self, **kwargs):
         """和create_agent一样
         """
-        self.create_agent(**kwargs)
+        return self.create_agent(**kwargs)
 
     def create_child_agent(self, **kwargs):
         """创建自己的子智能体
         """
         kwargs['parent'] = self
-        self.create_agent(**kwargs)
+        return self.create_agent(**kwargs)

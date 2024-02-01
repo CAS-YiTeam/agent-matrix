@@ -18,7 +18,7 @@ class FastapiWebCommunication():
         @app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             await websocket.accept()
-            data = await websocket.receive_text()
+            data = await websocket.receive_bytes()
             await websocket.send_text(f"Message received: {data}")
-            
+
         uvicorn.run(app, host="0.0.0.0", port=8000)
