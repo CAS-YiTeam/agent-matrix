@@ -87,7 +87,6 @@ class AgentBasic(object):
 
     def run(self):
         self.com_websocket = self._connect_to_matrix()
-        self._begin_acquire_command()
         threading.Thread(target=self._begin_acquire_command, daemon=True).start()
         while True:
             if self._activation_event.is_set():
