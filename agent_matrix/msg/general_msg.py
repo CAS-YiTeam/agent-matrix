@@ -89,10 +89,17 @@ class UserInterfaceMsg(BaseModel):
     NeedReply: bool = False
 
     ReservedField_01: str
+
     ReservedField_02: str
+
     ReservedField_03: str
+
     ReservedField_04: str
+
     ReservedField_05: str
+
     ReservedField_06: str
+
     ReservedField_07: str
+
     ReservedField_08: str
