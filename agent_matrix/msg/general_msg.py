@@ -20,86 +20,85 @@ class GeneralMsg(BaseModel):
 
 class UserInterfaceMsg(BaseModel):
     """
-    # 遵从虚幻引擎C++的命名规范
     USTRUCT(BlueprintType)
     struct FMatrixMsgStruct
     {
 
         GENERATED_BODY()
 
+        // 必须使用小写字母 + 下划线！
+        UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+        FString src;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString Src;
+        FString dst;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString Dst;
+        FString command;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString Command;
+        FString arg;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString Arg;
+        FString kwargs;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString Kwargs;
+        bool need_reply;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        bool NeedReply;
+        FString reserved_field_01;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString ReservedField_01;
+        FString reserved_field_02;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString ReservedField_02;
+        FString reserved_field_03;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString ReservedField_03;
+        FString reserved_field_04;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString ReservedField_04;
+        FString reserved_field_05;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString ReservedField_05;
+        FString reserved_field_06;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString ReservedField_06;
+        FString reserved_field_07;
 
         UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString ReservedField_07;
-
-        UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-        FString ReservedField_08;
+        FString reserved_field_08;
     };
     """
 
-    Src: str
+    src: str
         # source agent id
 
-    Dst: str
+    dst: str
         # destination agent id
 
-    Command: str
+    command: str
         # enum "connect_to_matrix"
         # enum "agent_activate"
 
-    Arg: str
+    arg: str
 
-    Kwargs: str
+    kwargs: str
 
-    NeedReply: bool = False
+    need_reply: bool = False
 
-    ReservedField_01: str
+    reserved_field_01: str
 
-    ReservedField_02: str
+    reserved_field_02: str
 
-    ReservedField_03: str
+    reserved_field_03: str
 
-    ReservedField_04: str
+    reserved_field_04: str
 
-    ReservedField_05: str
+    reserved_field_05: str
 
-    ReservedField_06: str
+    reserved_field_06: str
 
-    ReservedField_07: str
+    reserved_field_07: str
 
-    ReservedField_08: str
+    reserved_field_08: str
