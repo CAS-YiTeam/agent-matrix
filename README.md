@@ -10,6 +10,9 @@ The Core Insight of This Project: Achieving Higher Intelligence via **Nested** A
 
 
 ## Initialize
+
+![image](https://github.com/binary-husky/agent-matrix/assets/96192199/991a47f3-e805-43d5-a62f-da7def5ba5f5)
+
 ```mermaid
 flowchart LR
     launch --> |"method 1"| MASTER>"python master mind"]
