@@ -19,7 +19,22 @@ from agent_matrix.msg.general_msg import UserInterfaceMsg
 from typing import List
 
 
-class PythonMethod_QueueMaker():
+class PythonMethod_AsyncConnectionMaintainer:
+    """
+    Class responsible for maintaining an asynchronous connection with an agent.
+
+    Args:
+        agent_id (str): The ID of the agent.
+        websocket (WebSocket): The WebSocket connection.
+        client_id (str): The ID of the client.
+
+    Attributes:
+        None
+
+    Methods:
+        maintain_agent_connection_forever: Maintains the agent connection indefinitely.
+
+    """
     """
     A class that provides methods to create message queues and update connection information for agents and agentcraft interfaces.
     """
@@ -47,48 +62,6 @@ class PythonMethod_QueueMaker():
             message_queue_in=message_queue_in
         )
         return message_queue_out, message_queue_in, agent_proxy
-
-    def make_queue_agentcraft_interface(self, agentcraft_interface, websocket, client_id):
-        """
-        Creates a message queue for the specified agentcraft interface and updates the connection information.
-
-        Args:
-            agentcraft_interface (str): The name of the agentcraft interface.
-            websocket: The websocket connection object.
-            client_id: The ID of the client.
-
-        Returns:
-            tuple: A tuple containing the message queue for outgoing messages, the message queue for incoming messages, and the agentcraft proxy object.
-        """
-        message_queue_out = asyncio.Queue()
-        message_queue_in = asyncio.Queue()
-        assert agentcraft_interface in self.agentcraft_interface_websocket_connections, f"agentcraft_interface {agentcraft_interface} not found in self.agentcraft_interface_websocket_connections"
-        agentcraft_proxy: AgentCraftProxy = self.agentcraft_interface_websocket_connections[agentcraft_interface]
-        agentcraft_proxy.update_connection_info(
-            websocket=websocket,
-            client_id=client_id,
-            message_queue_out=message_queue_out,
-            message_queue_in=message_queue_in
-        )
-        return message_queue_out, message_queue_in, agentcraft_proxy
-
-
-class PythonMethod_AsyncConnectionMaintainer:
-    """
-    Class responsible for maintaining an asynchronous connection with an agent.
-
-    Args:
-        agent_id (str): The ID of the agent.
-        websocket (WebSocket): The WebSocket connection.
-        client_id (str): The ID of the client.
-
-    Attributes:
-        None
-
-    Methods:
-        maintain_agent_connection_forever: Maintains the agent connection indefinitely.
-
-    """
 
     async def maintain_agent_connection_forever(self, agent_id: str, websocket: WebSocket, client_id: str):
         async def wait_message_to_send(message_queue_out: asyncio.Queue, agent_proxy: AgentProxy):
@@ -127,12 +100,31 @@ class PythonMethod_AsyncConnectionMaintainer:
         await t_r
 
 
-class MasterMindWebSocketServer(PythonMethod_QueueMaker, PythonMethod_AsyncConnectionMaintainer):
+class PythonMethod_AsyncConnectionMaintainer_AgentcraftInterface:
 
-    def __init__(self) -> None:
-        self.websocket_connections = {}
-        self.agentcraft_interface_websocket_connections = {}
-        pass
+    def make_queue_agentcraft_interface(self, agentcraft_interface, websocket, client_id):
+        """
+        Creates a message queue for the specified agentcraft interface and updates the connection information.
+
+        Args:
+            agentcraft_interface (str): The name of the agentcraft interface.
+            websocket: The websocket connection object.
+            client_id: The ID of the client.
+
+        Returns:
+            tuple: A tuple containing the message queue for outgoing messages, the message queue for incoming messages, and the agentcraft proxy object.
+        """
+        message_queue_out = asyncio.Queue()
+        message_queue_in = asyncio.Queue()
+        assert agentcraft_interface in self.agentcraft_interface_websocket_connections, f"agentcraft_interface {agentcraft_interface} not found in self.agentcraft_interface_websocket_connections"
+        agentcraft_proxy: AgentCraftProxy = self.agentcraft_interface_websocket_connections[agentcraft_interface]
+        agentcraft_proxy.update_connection_info(
+            websocket=websocket,
+            client_id=client_id,
+            message_queue_out=message_queue_out,
+            message_queue_in=message_queue_in
+        )
+        return message_queue_out, message_queue_in, agentcraft_proxy
 
     async def maintain_agentcraft_interface_connection_forever(self, agentcraft_interface_id: str, websocket: WebSocket, client_id: str):
         async def wait_message_to_send(message_queue_out: asyncio.Queue, agent_proxy: AgentProxy):
@@ -147,7 +139,7 @@ class MasterMindWebSocketServer(PythonMethod_QueueMaker, PythonMethod_AsyncConne
                     raise NotImplementedError()
                 else:
                     # send the message to the real agentcraft unreal engine client
-                    await websocket.send_bytes(json.dumps(msg))
+                    await websocket.send_bytes(msg.json())
 
         async def receive_forever(message_queue_in: asyncio.Queue, agent_proxy: AgentProxy):
             # 🚀 real agentcraft unreal engine client -> matrix -> proxy unreal engine client
@@ -169,6 +161,14 @@ class MasterMindWebSocketServer(PythonMethod_QueueMaker, PythonMethod_AsyncConne
         t_r = asyncio.create_task(receive_forever(message_queue_in, agent_proxy))
         await t_x
         await t_r
+
+
+class MasterMindWebSocketServer(PythonMethod_AsyncConnectionMaintainer, PythonMethod_AsyncConnectionMaintainer_AgentcraftInterface):
+
+    def __init__(self) -> None:
+        self.websocket_connections = {}
+        self.agentcraft_interface_websocket_connections = {}
+        pass
 
     async def long_task_01_wait_incoming_connection(self):
         # task 1 wait incoming agent connection
@@ -227,6 +227,11 @@ class MasterMindWebSocketServer(PythonMethod_QueueMaker, PythonMethod_AsyncConne
                         websocket=websocket,
                         client_id=client_id,
                     )
+                    # send the message to the real agentcraft unreal engine client
+                    msg.command = "connect_to_matrix.re"
+                    msg.dst, msg.src = msg.src, msg.dst
+                    msg.kwargs = client_id
+                    await websocket.send_bytes(msg.json())
                     await self.maintain_agentcraft_interface_connection_forever(agentcraft_interface_id, websocket, client_id)
 
             logger.info("uvicorn starts")
