@@ -8,7 +8,11 @@ import pickle
 import threading
 from queue import Queue
 from fastapi import FastAPI, WebSocket
-from websockets.sync.client import connect
+try:
+    from websockets.sync.client import connect
+except ImportError:
+    raise ImportError("Import websockets failed, upgrade websockets by running: pip install websockets --upgrade")
+
 from agent_matrix.msg.general_msg import GeneralMsg
 from agent_matrix.agent.agent_basic import AgentBasic
 

@@ -11,7 +11,7 @@ if __name__ == "__main__":
         root_dir_assume = os.path.abspath(dir_name + "/..")
         os.chdir(root_dir_assume)
         sys.path.append(root_dir_assume)
-    validate_path()  # 返回项目根路径
+    validate_path()  # return to project root
 
     from shared.dynamic_import import hot_reload_class
 
