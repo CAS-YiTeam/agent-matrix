@@ -1,20 +1,24 @@
 from datetime import datetime
 from typing import List, Optional, Any
 from pydantic import BaseModel
-from enum import StrEnum, auto
+from enum import auto
 
-class UserInterfaceMsg_Command(StrEnum):
+class UserInterfaceMsg_Command():
+    # matrix -> ue
     connect_to_matrix   =  "connect_to_matrix"
+
+    # ue -> matrix
     update_script       =  "update_script"
     update_location     =  "update_location"
     play_event          =  "play_event"
     parent_play_event   =  "parent_play_event"
-
     create_agent        =  "create_agent"
     agent_activate      =  "agent_activate"
     duplicate_agent     =  "duplicate_agent"
     connect_agent       =  "connect_agent"
     disconnect_agent    =  "disconnect_agent"
+
+    update_agents       =  "update_agents"
 
 
 class UserInterfaceMsg(BaseModel):
@@ -29,7 +33,7 @@ class UserInterfaceMsg(BaseModel):
 
     dst: str # destination agent id
 
-    command: str | UserInterfaceMsg_Command
+    command: str #| UserInterfaceMsg_Command
 
     arg: str
 

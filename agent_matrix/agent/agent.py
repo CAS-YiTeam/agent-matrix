@@ -21,7 +21,5 @@ class Agent(AgentBasic):
         super().__init__(**kwargs)
         self.activate = False
 
-
-
     def agent_task_cycle(self):
         print('hello world')

@@ -149,9 +149,10 @@ class PythonMethod_AsyncConnectionMaintainer_AgentcraftInterface:
                 # 🕜 wait websocket message from the real agentcraft unreal engine client
                 msg: UserInterfaceMsg = UserInterfaceMsg.parse_raw(await websocket.receive_text())
                 msg_cnt += 1
-                logger.info('receiving agentcraft:', agentcraft_interface_id, '\tcnt:', msg_cnt, '\tcommand:', msg.command)
+                logger.info(f'receiving agentcraft: {agentcraft_interface_id}, cnt: {msg_cnt} command: {msg.command}')
                 if msg.dst == 'matrix':
-                    raise NotImplementedError()
+                    pass
+                    # raise NotImplementedError()
                 else:
                     # deliver the message to the proxy unreal engine client
                     await message_queue_in.put(msg)
