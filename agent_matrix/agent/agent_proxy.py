@@ -42,6 +42,7 @@ class BaseProxy(object):
         self.client_id = client_id
         self.message_queue_send_to_real_agent = message_queue_out
         self.message_queue_get_from_real_agent = message_queue_in
+        self.agent_location = [0,0,0]
 
     def update_connection_info(self,
                                websocket: WebSocket = None,
@@ -117,7 +118,7 @@ class AgentProxy(BaseProxy):
             Self: The proxy of the child agent.
 
         """
-        from agent_matrix.matrix.mastermind_matrix import MasterMindMatrix
+        from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
         self.matrix: MasterMindMatrix
         parent = self
         child_agent_proxy = self.matrix.execute_create_agent(agent_id=agent_id,
@@ -153,3 +154,13 @@ class AgentProxy(BaseProxy):
             reply_msg = self.get_from_real_agent()
             if reply_msg.command != "activate_agent.re":
                 raise ValueError()
+
+
+    def get_children(self):
+        """ Get all children of this agent (does not include itself).
+        """
+        children = []
+        for agent in self.direct_children:
+            children.append(agent)
+            children.extend(agent.get_children())
+        return children

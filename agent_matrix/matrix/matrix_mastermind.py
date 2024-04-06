@@ -31,16 +31,16 @@ class MasterMindMatrix(MasterMindWebSocketServer):
         logger.info("launch agentcraft")
         pass
 
-    async def long_task_03_exec_command_queue(self):
-        # task 3 wait agent command, put them into task queue
-        while True:
-            await asyncio.sleep(1000)
+    # async def long_task_03_exec_command_queue(self):
+    #     # task 3 wait agent command, put them into task queue
+    #     while True:
+    #         await asyncio.sleep(1000)
 
     async def major_event_loop(self):
         long_task_01 = asyncio.create_task(self.long_task_01_wait_incoming_connection())
-        long_task_02 = asyncio.create_task(self.long_task_03_exec_command_queue())
+        # long_task_02 = asyncio.create_task(self.long_task_03_exec_command_queue())
         await long_task_01
-        await long_task_02
+        # await long_task_02
 
     def asyncio_event_loop(self):
         logger.info("begin event loop")

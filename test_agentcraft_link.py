@@ -1,4 +1,4 @@
-from agent_matrix.matrix.mastermind_matrix import MasterMindMatrix
+from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
 # from agent_matrix.agent.agent_basic import Agent
 
 mmm = MasterMindMatrix(host='localhost', port=10101, dedicated_server=False)
