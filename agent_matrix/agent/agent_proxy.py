@@ -7,6 +7,8 @@ from agent_matrix.agent.interaction import InteractionManager
 from agent_matrix.msg.general_msg import GeneralMsg
 from typing import List
 from typing_extensions import Self
+from rich import print
+from rich.panel import Panel
 
 class BaseProxy(object):
     """
@@ -105,30 +107,36 @@ class BaseProxy(object):
 
     def wakeup_downstream_agent(self, msg):
         # find downstream agents
-        for downstream_agent in self.interaction.get_downstream():
+        downstream_agent_id_arr = list(self.interaction.get_downstream())
+        if len(downstream_agent_id_arr) == 0:
+            print(Panel(f"Agent 「{self.agent_id}」 --> 「 No More Downstream Agents! 」\n Final Message: \n {msg.print_string()}"))
+        for downstream_agent_id in downstream_agent_id_arr:
             # send message to matrix
-            downstream_agent.wakeup_agent(msg)
+            downstream_agent = self.parent.search_children_by_id(downstream_agent_id)
+            if (downstream_agent):
+                print(Panel(f"Agent 「{self.agent_id}」 --> 「{downstream_agent.agent_id}」\n Delivering Message: \n {msg.print_string()}"))
+                downstream_agent.wakeup_agent(msg)
 
-    def register_trigger(self, cmd, event):
-        self.event_triggers[cmd] = event
+    def register_trigger(self, command, event):
+        self.event_triggers[command] = event
 
     def handle_command(self, msg: GeneralMsg):
-        if msg.cmd in self.event_triggers.keys():
-            self.event_triggers[msg.cmd].return_value = msg
-            self.event_triggers[msg.cmd].set()
+        if msg.command in self.event_triggers.keys():
+            self.event_triggers[msg.command].return_value = msg
+            self.event_triggers[msg.command].set()
             return
-        if msg == 'on_agent_fin':
+        if msg.command == 'on_agent_fin':
             self.on_agent_fin(msg)
         else:
-            raise ValueError(f"Unknown command {msg.cmd}")
+            raise ValueError(f"Unknown command {msg.command}")
 
-    def send_msg_and_wait_reply(self, wait_cmd:str, msg: GeneralMsg):
+    def send_msg_and_wait_reply(self, wait_command:str, msg: GeneralMsg):
         """ Send msg, then keep waiting until receiving expected reply.
         """
         self.send_to_real_agent(msg)
         self.temp_event = threading.Event()
         self.temp_event.return_value = None
-        self.register_trigger(wait_cmd, self.temp_event)
+        self.register_trigger(wait_command, self.temp_event)
         self.temp_event.wait()
         return self.temp_event.return_value
 
@@ -212,6 +220,8 @@ class AgentProxy(BaseProxy):
         """ Make an agent its downstream agent.
         """
         # downstream_agent_proxy = self.matrix.find_agent_by_id(dst_agent)
+        if isinstance(dst_agent_id, self.__class__):
+            dst_agent_id = dst_agent_id.agent_id
         dst_agent_proxy =  self.parent.search_children_by_id(dst_agent_id)
         if dst_agent_proxy is None:
             raise ValueError(f"Cannot find agent {dst_agent_id}, or its parent is not the same with {self.agent_id}")
@@ -222,9 +232,17 @@ class AgentProxy(BaseProxy):
     def wakeup(self, main_input):
         # 1. send msg to real agent
         # 2. wait 'on_agent_fin'
-        msg =  GeneralMsg()
-        msg.src = self.proxy_id
-        msg.dst = self.agent_id
-        msg.command = "on_agent_wakeup"
-        msg.kwargs = main_input
+        msg =  GeneralMsg(
+            src=self.proxy_id,
+            dst=self.agent_id,
+            command="on_agent_wakeup",
+            kwargs={"main_input": main_input},
+        )
+        print(Panel(f"Agent 「{self.agent_id}」is waking up!\n Delivering Message: \n {msg.print_string()}"))
         self.send_to_real_agent(msg)
+
+    # @user_fn
+    def activate(self):
+        # 1. send msg to real agent
+        # 2. wait 'on_agent_fin'
+        self.activate_agent()

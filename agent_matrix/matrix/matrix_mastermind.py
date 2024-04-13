@@ -109,7 +109,8 @@ class MasterMindMatrix(MasterMindWebSocketServer):
 
             # 🕜 接下来，我们需要等待智能体启动完成，并连接母体的websocket
             for i in reversed(range(30)):
-                logger.info(f"wait agent {agent_id} to connect to matrix, timeout in {i} seconds")
+                if i % 5 == 0:
+                    logger.info(f"wait agent {agent_id} to connect to matrix, timeout in {i} seconds")
                 agent_proxy.connected_event.wait(timeout=1)
                 if agent_proxy.connected_event.is_set():
                     break

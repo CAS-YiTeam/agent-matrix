@@ -41,10 +41,9 @@ agent_proofreader.create_edge_to(dst_agent_id=agent_polisher)
 agent_polisher.create_edge_to(dst_agent_id=agent_chinese_localization_worker)
 
 # 好了，一切就绪，激活所有智能体，让他们开始工作
-mmm.activate_agent(agent_id=f"proofreader")
-mmm.activate_agent(agent_id=f"polisher")
-mmm.activate_agent(agent_id=f"chinese_localization_worker")
-
+agent_proofreader.activate()
+agent_polisher.activate()
+agent_chinese_localization_worker.activate()
 
 agent_proofreader.wakeup("""
 国内企业非常重视群体系统的落地应用。

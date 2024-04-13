@@ -24,6 +24,9 @@ class InteractionManager(object):
         self.interaction_graph.add_edge(src_agent_id, dst_agent_id, channel=channel)
 
     def get_downstream(self):
-        return self.interaction_graph.successors(self.agent_proxy.agent_id)
+        try:
+            return self.interaction_graph.successors(self.agent_proxy.agent_id)
+        except:
+            return []
 
 
