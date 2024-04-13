@@ -10,7 +10,7 @@ mmm.begin_event_loop_non_blocking()
 nest = mmm.create_agent(
     agent_id=f"nest",
     agent_class="agent_matrix.agent.agent->EchoAgent",
-    agent_kwargs={}
+    agent_kwargs={},
 )
 # 在母体中，创建一个校对智能体
 智能体_校对者 = nest.create_agent(
@@ -19,7 +19,8 @@ nest = mmm.create_agent(
     agent_kwargs={"sys_prompt":
         "你是一个校对者，你的任务是校对文本，找出其中的错误。你的队伍中还有一个润色者和一个中文本地化者，你只需要做好自己的分内工作，不能僭越其他人的工作。使用中文。",
         "query_construction": "{MAIN_INPUT_PLACEHOLDER}\n" + "Do your job according to the instructions."
-    }
+    },
+    blocking=False
 )
 
 # 在母体中，创建一个润色智能体
@@ -30,7 +31,8 @@ agent_kwargs = {""}
     agent_kwargs={"sys_prompt":
         "你是一个润色者，你的任务是润色文本。你的队伍中还有一个校对者和一个中文本地化者，你只需要做好自己的分内工作，不能僭越其他人的工作。使用中文。",
         "query_construction": "Do your job according to the instructions."
-    }
+    },
+    blocking=False
 )
 
 # 在母体中，创建一个中文专业化智能体
@@ -40,7 +42,8 @@ agent_kwargs = {""}
     agent_kwargs={"sys_prompt":
         "你是一个中文本地化专者，你的任务是将不符合中文语言习惯的句子进行修改。你的队伍中还有一个校对者和一个润色者，你只需要做好自己的分内工作，不能僭越其他人的工作。使用中文。",
         "query_construction": "Do your job according to the instructions."
-    }
+    },
+    blocking=False
 )
 
 # 在母体中，创建一个中文专业化智能体
@@ -50,8 +53,14 @@ agent_kwargs = {""}
     agent_kwargs={"sys_prompt":
         "你的任务是将校对者、润色者和本地化者的工作结果进行汇总，形成最终的文本。你不得输出除最终文本之外的任何废话。使用中文。",
         "query_construction": "Do your job according to the instructions."
-    }
+    },
+    blocking=False
 )
+
+智能体_校对者 = mmm.search_children_by_id("校对者", blocking=True)
+智能体_润色者 = mmm.search_children_by_id("润色者", blocking=True)
+智能体_本地化 = mmm.search_children_by_id("本地化", blocking=True)
+智能体_总结者 = mmm.search_children_by_id("总结者", blocking=True)
 
 # # 在母体中，创建一个中文专业化智能体
 # 智能体_反思者 = nest.create_agent(

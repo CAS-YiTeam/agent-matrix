@@ -211,6 +211,8 @@ class BaseProxy(object):
                 else:
                     tree_branch = tree.add(agent.agent_id)
                 tree_branch.target = tree.target
+            else:
+                tree_branch = None
             children.extend(agent.get_children(tree_branch))
         return children
 
@@ -229,7 +231,8 @@ class AgentProxy(BaseProxy):
                            agent_id: str,
                            agent_class: str,
                            agent_kwargs: dict,
-                           remote_matrix_kwargs: dict = None) -> Self:
+                           remote_matrix_kwargs: dict = None,
+                           blocking:bool = True) -> Self:
         """ contact matrix to build new agent
 
         Args:
@@ -245,20 +248,26 @@ class AgentProxy(BaseProxy):
         from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
         self.matrix: MasterMindMatrix
         parent = self
-        child_agent_proxy = self.matrix.execute_create_agent(agent_id=agent_id,
-                                                             agent_class=agent_class,
-                                                             agent_kwargs=agent_kwargs,
-                                                             remote_matrix_kwargs=remote_matrix_kwargs,
-                                                             parent=parent)
-        return child_agent_proxy
+        if blocking:
+            child_agent_proxy = self.matrix.execute_create_agent(agent_id=agent_id,
+                                                                agent_class=agent_class,
+                                                                agent_kwargs=agent_kwargs,
+                                                                remote_matrix_kwargs=remote_matrix_kwargs,
+                                                                parent=parent)
+            return child_agent_proxy
+        else:
+            # async call, create new thread to do this, do not wait
+            import threading
+            t = threading.Thread(target=self.matrix.execute_create_agent,
+                                    args=(agent_id, agent_class, agent_kwargs, remote_matrix_kwargs, parent))
+            t.start()
+            return None
+
+
 
     # @user_fn
-    def create_agent(self,
-                           agent_id: str,
-                           agent_class: str,
-                           agent_kwargs: dict,
-                           remote_matrix_kwargs: dict = None) -> Self:
-        return self.create_child_agent(agent_id, agent_class, agent_kwargs, remote_matrix_kwargs)
+    def create_agent(self, *args, **kwargs) -> Self:
+        return self.create_child_agent(*args, **kwargs)
 
 
     # @user_fn

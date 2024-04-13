@@ -129,21 +129,28 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                 logger.error(f"agent {agent_id} failed to connect to matrix within the timeout limit")
                 return None
 
-    def execute_create_agent(self, **kwargs):
+    def execute_create_agent(self, *args, **kwargs):
         """和create_agent一样
         """
-        return self.create_agent(**kwargs)
+        return self.create_agent(*args, **kwargs)
 
-    def create_child_agent(self, **kwargs):
+    def create_child_agent(self, *args, **kwargs):
         """创建自己的子智能体
         """
         kwargs['parent'] = self
-        return self.create_agent(**kwargs)
+        return self.create_agent(*args, **kwargs)
 
-    def search_children_by_id(self, agent_id:str):
-        for c in self.direct_children:
+    def search_children_by_id(self, agent_id:str, blocking:bool=False):
+        for c in self.get_all_agents_in_matrix():
             if c.agent_id == agent_id:
                 return c
+        # does not find
+        if blocking:
+            while True:
+                for c in self.get_all_agents_in_matrix():
+                    if c.agent_id == agent_id:
+                        return c
+                time.sleep(3)
         return None
 
     def get_all_agents_in_matrix(self, tree=None):
@@ -155,6 +162,8 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                 else:
                     tree_branch = tree.add(agent.agent_id)
                 tree_branch.target = tree.target
+            else:
+                tree_branch = None
             all_agents.append(agent)
             all_agents.extend(agent.get_children(tree_branch))
         return all_agents
