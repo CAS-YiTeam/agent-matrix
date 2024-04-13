@@ -84,7 +84,9 @@ class MasterMindMatrix(MasterMindWebSocketServer):
             port = self.port
 
             # 创建一个Agent在母体中的代理对象
-            agent_proxy = AgentProxy(matrix=self, agent_id=agent_id)
+            if parent is None:
+                parent = self
+            agent_proxy = AgentProxy(matrix=self, agent_id=agent_id, parent=parent)
             if agent_id in self.websocket_connections:
                 logger.error(
                     f"agent_id {agent_id} already exists in self.websocket_connections")
@@ -130,3 +132,9 @@ class MasterMindMatrix(MasterMindWebSocketServer):
         """
         kwargs['parent'] = self
         return self.create_agent(**kwargs)
+
+    def search_children_by_id(self, agent_id:str):
+        for c in self.direct_children:
+            if c.agent_id == agent_id:
+                return c
+        return None

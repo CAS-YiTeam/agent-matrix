@@ -67,8 +67,20 @@ class AgentBasic(object):
             self.activate_agent()
         elif msg.command == "deactivate_agent":
             self.deactivate_agent()
+        elif msg.command == "on_agent_wakeup":
+            # deal with the message from upstream
+            downstream = self.on_agent_wakeup(msg.kwargs)
+            # deliver message to downstream (don't worry, agent proxy will deal with it, e.g. chosing the right downstream agent)
+            self.on_agent_fin(downstream)
         else:
             raise NotImplementedError
+
+    def on_agent_wakeup(self, kwargs):
+        raise NotImplementedError
+
+    def on_agent_fin(self, downstream):
+        msg = GeneralMsg(src=self.agent_id, dst=self.proxy_id, command="on_agent_fin", kwargs=downstream)
+        self._send_msg(msg)
 
     def activate_agent(self):
         self._activation_event.set()

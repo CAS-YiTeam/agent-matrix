@@ -3,7 +3,7 @@ import asyncio
 import threading
 from loguru import logger
 from fastapi import WebSocket
-from agent_matrix.agent.interaction import InteractionBuilder
+from agent_matrix.agent.interaction import InteractionManager
 from agent_matrix.msg.general_msg import GeneralMsg
 from typing import List
 from typing_extensions import Self
@@ -14,10 +14,11 @@ class BaseProxy(object):
     这个类用来管理agent的连接信息
     包括websocket连接，client_id，message_queue等等
     """
-
+    # from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
     def __init__(self,
                  matrix,
                  agent_id: str,
+                 parent, # BaseProxy
                  websocket: WebSocket = None,
                  client_id: str = None,
                  message_queue_out: asyncio.Queue = None,
@@ -35,6 +36,7 @@ class BaseProxy(object):
         """
         self.matrix = matrix
         self.direct_children: List[BaseProxy] = []
+        self.parent: BaseProxy = parent
         self.connected_event = threading.Event()
         self.agent_id = agent_id
         self.proxy_id = '_proxy_' + agent_id
@@ -43,6 +45,8 @@ class BaseProxy(object):
         self.message_queue_send_to_real_agent = message_queue_out
         self.message_queue_get_from_real_agent = message_queue_in
         self.agent_location = [0,0,0]
+        self.event_triggers = {}
+        self.interaction = InteractionManager(self)
 
     def update_connection_info(self,
                                websocket: WebSocket = None,
@@ -88,25 +92,67 @@ class BaseProxy(object):
         msg: GeneralMsg = pickle.loads(res)
         return msg
 
+    def wakeup_agent(self, msg):
+        # 1. send msg to real agent
+        # 2. wait 'on_agent_fin'
+        msg.src = self.proxy_id
+        msg.dst = self.agent_id
+        msg.command = "on_agent_wakeup"
+        self.send_to_real_agent(msg)
+
+    def on_agent_fin(self, msg):
+        self.wakeup_downstream_agent(msg)
+
+    def wakeup_downstream_agent(self, msg):
+        # find downstream agents
+        for downstream_agent in self.interaction.get_downstream():
+            # send message to matrix
+            downstream_agent.wakeup_agent(msg)
+
+    def register_trigger(self, cmd, event):
+        self.event_triggers[cmd] = event
+
+    def handle_command(self, msg: GeneralMsg):
+        if msg.cmd in self.event_triggers.keys():
+            self.event_triggers[msg.cmd].return_value = msg
+            self.event_triggers[msg.cmd].set()
+            return
+        if msg == 'on_agent_fin':
+            self.on_agent_fin(msg)
+        else:
+            raise ValueError(f"Unknown command {msg.cmd}")
+
+    def send_msg_and_wait_reply(self, wait_cmd:str, msg: GeneralMsg):
+        """ Send msg, then keep waiting until receiving expected reply.
+        """
+        self.send_to_real_agent(msg)
+        self.temp_event = threading.Event()
+        self.temp_event.return_value = None
+        self.register_trigger(wait_cmd, self.temp_event)
+        self.temp_event.wait()
+        return self.temp_event.return_value
+
+    def search_children_by_id(self, agent_id:str):
+        for c in self.direct_children:
+            if c.agent_id == agent_id:
+                return c
+        return None
+
 
 class AgentProxy(BaseProxy):
-    """这个类用来管理agent的连接信息，包括websocket连接，client_id，message_queue等等
-
-    Attributes:
-        interaction_builder (InteractionBuilder): An instance of the InteractionBuilder class.
-
+    """This class handle direct api calls from the user.
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.interaction_builder = InteractionBuilder(self)
 
+    # @user_fn
     def create_child_agent(self,
                            agent_id: str,
                            agent_class: str,
                            agent_kwargs: dict,
                            remote_matrix_kwargs: dict = None) -> Self:
-        """ 与母体协调，创建新智能体，并建立与新智能体的连接
+        """ contact matrix to build new agent
 
         Args:
             agent_id (str): The ID of the new agent.
@@ -128,6 +174,7 @@ class AgentProxy(BaseProxy):
                                                              parent=parent)
         return child_agent_proxy
 
+    # @user_fn
     def activate_agent(self):
         """Activates the agent.
 
@@ -136,11 +183,9 @@ class AgentProxy(BaseProxy):
 
         """
         msg = GeneralMsg(src=self.proxy_id, dst=self.agent_id, command="activate_agent", kwargs={}, need_reply=True)
-        self.send_to_real_agent(msg)
-        reply_msg = self.get_from_real_agent()
-        if reply_msg.command != "activate_agent.re":
-            raise ValueError()
+        reply_msg = self.send_msg_and_wait_reply("activate_agent.re", msg)
 
+    # @user_fn
     def activate_all_children(self):
         """Activates all the child agents.
 
@@ -150,12 +195,9 @@ class AgentProxy(BaseProxy):
         """
         for a in self.direct_children:
             msg = GeneralMsg(src=self.proxy_id, dst=a.agent_id, command="activate_agent", kwargs={}, need_reply=True)
-            self.send_to_real_agent(msg)
-            reply_msg = self.get_from_real_agent()
-            if reply_msg.command != "activate_agent.re":
-                raise ValueError()
+            reply_msg = self.send_msg_and_wait_reply("activate_agent.re", msg)
 
-
+    # @user_fn
     def get_children(self):
         """ Get all children of this agent (does not include itself).
         """
@@ -164,3 +206,25 @@ class AgentProxy(BaseProxy):
             children.append(agent)
             children.extend(agent.get_children())
         return children
+
+    # @user_fn
+    def create_edge_to(self, dst_agent_id:str):
+        """ Make an agent its downstream agent.
+        """
+        # downstream_agent_proxy = self.matrix.find_agent_by_id(dst_agent)
+        dst_agent_proxy =  self.parent.search_children_by_id(dst_agent_id)
+        if dst_agent_proxy is None:
+            raise ValueError(f"Cannot find agent {dst_agent_id}, or its parent is not the same with {self.agent_id}")
+        self.interaction.create_edge(self.agent_id, dst_agent_id)
+        return
+
+    # @user_fn
+    def wakeup(self, main_input):
+        # 1. send msg to real agent
+        # 2. wait 'on_agent_fin'
+        msg =  GeneralMsg()
+        msg.src = self.proxy_id
+        msg.dst = self.agent_id
+        msg.command = "on_agent_wakeup"
+        msg.kwargs = main_input
+        self.send_to_real_agent(msg)

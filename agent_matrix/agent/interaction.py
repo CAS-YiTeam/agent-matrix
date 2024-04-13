@@ -9,7 +9,7 @@ from queue import Queue
 from agent_matrix.agent.agent import Agent
 import networkx as nx
 
-class InteractionBuilder(object):
+class InteractionManager(object):
     def __init__(self, agent_proxy) -> None:
         self.agent_proxy = agent_proxy
         self.interaction_graph = nx.DiGraph()  # Directed graph
@@ -20,5 +20,10 @@ class InteractionBuilder(object):
         for child in children:
             self.interaction_graph.add_node(child.agent_id)
 
-    def create_edge(self, src_agent_id, dst_agent_id, channel):
+    def create_edge(self, src_agent_id, dst_agent_id, channel=None):
         self.interaction_graph.add_edge(src_agent_id, dst_agent_id, channel=channel)
+
+    def get_downstream(self):
+        return self.interaction_graph.successors(self.agent_proxy.agent_id)
+
+
