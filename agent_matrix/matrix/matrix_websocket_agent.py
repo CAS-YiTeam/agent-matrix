@@ -72,7 +72,7 @@ class PythonMethod_AsyncConnectionMaintainer:
                     # 🕜 wait message from the proxy agent
                     msg: GeneralMsg = await message_queue_out.get()
                     msg_cnt += 1
-                    logger.info('sending agent:', agent_id, '\tcnt:', msg_cnt, '\tcommand:', msg.command)
+                    logger.info(f'sending agent: {agent_id} \tcnt: {msg_cnt} \tcommand: {msg.command}')
                     if msg.dst == 'matrix':
                         raise NotImplementedError()
                     else:
@@ -91,7 +91,7 @@ class PythonMethod_AsyncConnectionMaintainer:
                     # 🕜 wait websocket message from the real agent
                     msg: GeneralMsg = pickle.loads(await websocket.receive_bytes())
                     msg_cnt += 1
-                    logger.info('receiving agent:', agent_id, '\tcnt:', msg_cnt, '\tcommand:', msg.command)
+                    # logger.info('receiving agent:', agent_id, '\tcnt:', msg_cnt, '\tcommand:', msg.command)
                     if msg.dst == 'matrix':
                         raise NotImplementedError()
                     else:

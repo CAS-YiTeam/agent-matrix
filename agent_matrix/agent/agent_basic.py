@@ -71,15 +71,20 @@ class AgentBasic(object):
             # deal with the message from upstream
             downstream = self.on_agent_wakeup(msg.kwargs)
             # deliver message to downstream (don't worry, agent proxy will deal with it, e.g. chosing the right downstream agent)
-            self.on_agent_fin(downstream)
+            self.on_agent_fin(downstream, msg)
         else:
             raise NotImplementedError
 
     def on_agent_wakeup(self, kwargs):
         raise NotImplementedError
 
-    def on_agent_fin(self, downstream):
-        msg = GeneralMsg(src=self.agent_id, dst=self.proxy_id, command="on_agent_fin", kwargs=downstream)
+    def on_agent_fin(self, downstream, msg):
+        msg.src = self.agent_id
+        msg.dst = self.proxy_id
+        msg.command = "on_agent_fin"
+        msg.kwargs = downstream
+        # keep level shift unchanged
+        msg.level_shift = msg.level_shift
         self._send_msg(msg)
 
     def activate_agent(self):

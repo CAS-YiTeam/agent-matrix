@@ -15,6 +15,8 @@ from agent_matrix.agent.agent_proxy import AgentProxy
 from agent_matrix.msg.general_msg import GeneralMsg
 from agent_matrix.matrix.matrix_websocket import MasterMindWebSocketServer
 from typing import List
+from rich.panel import Panel
+from rich import print
 
 
 class MasterMindMatrix(MasterMindWebSocketServer):
@@ -25,6 +27,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
         self.port = port
         self.dedicated_server = dedicated_server
         self.direct_children = []
+        self.agent_tree = None
         self.launch_agentcraft()
 
     def launch_agentcraft(self):
@@ -118,6 +121,9 @@ class MasterMindMatrix(MasterMindWebSocketServer):
             if agent_proxy.connected_event.is_set():
                 # 成功！
                 logger.info(f"agent {agent_id} connected to matrix")
+                self.build_tree(target=agent_id)
+                # Render the tree
+                print(Panel(self.agent_tree))
                 return agent_proxy
             else:
                 logger.error(f"agent {agent_id} failed to connect to matrix within the timeout limit")
@@ -139,3 +145,25 @@ class MasterMindMatrix(MasterMindWebSocketServer):
             if c.agent_id == agent_id:
                 return c
         return None
+
+    def get_all_agents_in_matrix(self, tree=None):
+        all_agents = []
+        for agent in self.direct_children:
+            if tree is not None:
+                if tree.target == agent.agent_id:
+                    tree_branch = tree.add("[red]" + agent.agent_id + "[/red]")
+                else:
+                    tree_branch = tree.add(agent.agent_id)
+                tree_branch.target = tree.target
+            all_agents.append(agent)
+            all_agents.extend(agent.get_children(tree_branch))
+        return all_agents
+
+    def build_tree(self, target):
+        from rich.tree import Tree
+        # Create a Tree instance
+        tree = Tree("Matrix")
+        tree.target = target
+        self.get_all_agents_in_matrix(tree)
+        self.agent_tree = tree
+        return self.agent_tree
