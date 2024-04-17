@@ -89,7 +89,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
             # 创建一个Agent在母体中的代理对象
             if parent is None:
                 parent = self
-            agent_proxy = AgentProxy(matrix=self, agent_id=agent_id, parent=parent)
+            agent_proxy = AgentProxy(matrix=self, agent_id=agent_id, parent=parent, agent_kwargs=agent_kwargs)
             if agent_id in self.websocket_connections:
                 logger.error(
                     f"agent_id {agent_id} already exists in self.websocket_connections")

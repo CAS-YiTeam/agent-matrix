@@ -52,7 +52,7 @@ class PythonMethod_AsyncConnectionMaintainer_AgentcraftInterface(PythonMethod_Ag
                     # 🕜 wait message from the proxy unreal engine client
                     msg: UserInterfaceMsg = await message_queue_out.get()
                     msg_cnt += 1
-                    logger.info('sending agentcraft:', agentcraft_interface_id, '\tcnt:', msg_cnt, '\tcommand:', msg.command)
+                    # logger.info('sending agentcraft:', agentcraft_interface_id, '\tcnt:', msg_cnt, '\tcommand:', msg.command)
                     if msg.dst == 'matrix':
                         raise NotImplementedError()
                     else:

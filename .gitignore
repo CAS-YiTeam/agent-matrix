@@ -24,3 +24,8 @@ ENV/
 *.swp
 *~
 .$agent-matrix.drawio.bkp
+
+
+*private*
+.$*
+*.log

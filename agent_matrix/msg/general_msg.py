@@ -31,7 +31,12 @@ class GeneralMsg(BaseModel):
 
         def print_kwargs(kwargs):
             buf = "\n"
-            for k in kwargs:
+            keys = list(kwargs.keys())
+            if "history" in keys:
+                keys.remove("history")
+                keys = ["history"] + list(keys)
+
+            for k in keys:
                 v = kwargs[k]
                 if isinstance(v, list):
                     # add space before each

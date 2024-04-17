@@ -1,5 +1,4 @@
 from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
-# from agent_matrix.agent.agent_basic import Agent
 
 """
 复现OpenAI的Meta-Prompting

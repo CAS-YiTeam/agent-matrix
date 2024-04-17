@@ -24,7 +24,8 @@ class BaseProxy(object):
                  websocket: WebSocket = None,
                  client_id: str = None,
                  message_queue_out: asyncio.Queue = None,
-                 message_queue_in: asyncio.Queue = None):
+                 message_queue_in: asyncio.Queue = None,
+                 agent_kwargs: dict = None):
         """
         初始化BaseProxy对象
 
@@ -43,6 +44,7 @@ class BaseProxy(object):
         self.agent_id = agent_id
         self.proxy_id = '_proxy_' + agent_id
         self.websocket = websocket
+        self.agent_kwargs = agent_kwargs
         self.client_id = client_id
         self.message_queue_send_to_real_agent = message_queue_out
         self.message_queue_get_from_real_agent = message_queue_in

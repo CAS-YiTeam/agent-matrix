@@ -1,5 +1,9 @@
 from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
-# from agent_matrix.agent.agent_basic import Agent
+from textwrap import dedent
+
+PROMPT_DO_IT = "Do your job according to the instructions."
+PROMPT_DO_IT_ZH = "根据提示完成任务。"
+
 
 """
 复现OpenAI的Meta-Prompting
@@ -8,118 +12,148 @@ from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
 mmm = MasterMindMatrix(host='localhost', port=10101, dedicated_server=False)
 mmm.begin_event_loop_non_blocking()
 
-
-
+# 在母体中，创建一个嵌套智能体，一个高级的翻译者
 pro_zh_translator = mmm.create_agent(
     agent_id=f"pro_zh_translator",
     agent_class="agent_matrix.agent.agent->EchoAgent",
     agent_kwargs={},
 )
 
-
-
-pro_zh_translator__primitive = pro_zh_translator.create_agent(
-    agent_id=f"原始翻译",
-    agent_class="agent_matrix.agent.agent_basic_qa->BasicQaAgent",
-    agent_kwargs={"sys_prompt":  "",
+# 为这个高级翻译者创建一个子智能体，用于原始翻译
+primitive_translation = pro_zh_translator.create_agent(
+    agent_id=f"primitive_translation",
+    agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
+    agent_kwargs={"sys_prompt": "",
         "query_construction":
             r"Below is a section from an English academic paper, translate it into Chinese. " +
             r"Do not modify any latex command such as \section, \cite, \begin, \item and equations. " +
             r"Answer me only with the translated text:" + "{MAIN_INPUT_PLACEHOLDER}\n"
     },
-    blocking=False
+    blocking=True
 )
 
+# 为这个高级翻译者创建一个子智能体，用于纠正生硬的翻译，使其更符合中文语言习惯
+passive_editor = pro_zh_translator.create_agent(
+    agent_id=f"passive_editor",
+    agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
+    agent_kwargs={
+        "sys_prompt": dedent("""
+                                移除句子中所有的“我们”一词，将涉及到的动词改为被动语态。仅输出修改后的句子。
 
-# 在母体中，创建一个子智能体
-system_prompt = "你是一个中文翻译者，你的任务是将英文句子翻译成中文。"
-examples = [
-"""
-- Given this motivation of automating program repair, ...
-- 错误示例：
-""",
-]
-pro_zh_translator_child_1 = pro_zh_translator.create_agent(
-    agent_id=f"句式调整",
-    agent_class="agent_matrix.agent.agent_basic_qa->BasicQaAgent",
-    agent_kwargs={"sys_prompt":
-        "",
-        "query_construction": "{MAIN_INPUT_PLACEHOLDER}\n" + "Do your job according to the instructions."
+                                举例1：
+                                    We note that the workflow of AutoCodeRover...
+                                    错误翻译：我们注意到，到目前为止讨论的AutoCodeRover的工作流程...
+                                    改正方法：直接删除
+
+                                举例2：
+                                    We present a case study on one of the tasks uniquely resolved by ACR-val-sbfl...
+                                    错误翻译：我们呈现了一个由ACR-val-sbfl独特解决的任务的案例研究...
+                                    改正方法：替换成“本文”，“本节”
+                                """),
+        "need_history": False,
+        "query_construction": "{MAIN_INPUT_PLACEHOLDER}\n" + PROMPT_DO_IT_ZH
     },
-    blocking=False
+    blocking=True
 )
 
 
 
+# 为这个高级翻译者创建一个子智能体，用于纠正生硬的翻译，使其更符合中文语言习惯
+adjust_grammar = pro_zh_translator.create_agent(
+    agent_id=f"adjust_grammar",
+    agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
+    agent_kwargs={
+        "sys_prompt": dedent("""
+                                你是一个中文科研论文写作导师，正在纠正学生的学术文章错误。仅输出修改后的句子。
 
+                                示例1
+                                -- 原文与翻译：
+                                    “Given this motivation of automating program repair, ...”
+                                    “鉴于自动程序修复的这种动机，...”
+                                -- 问题：
+                                    冗余，重点不突出
+                                -- 更正方法：
+                                    “为了自动化地修复程序，...”
 
+                                示例2
+                                -- 原文与翻译：
+                                    “We show an example of a challenging feature addition task.”
+                                    “我们展示了一个具有挑战性的特性添加任务的示例。”
+                                -- 问题：
+                                    学术文章里面禁止出现“我们”一词
+                                    句子中连续出现两个“的”
+                                -- 更正方法：
+                                    “以下是一个挑战性的特性添加任务示例。”
 
-
-# 在母体中，创建一个润色智能体
-agent_kwargs = {""}
-智能体_润色者 = nest.create_agent(
-    agent_id=f"润色者",
-    agent_class="agent_matrix.agent.agent_basic_qa->BasicQaAgent",
-    agent_kwargs={"sys_prompt":
-        "你是一个润色者，你的任务是润色文本。你的队伍中还有一个校对者和一个中文本地化者，你只需要做好自己的分内工作，不能僭越其他人的工作。使用中文。",
-        "query_construction": "Do your job according to the instructions."
+                                示例3
+                                -- 原文与翻译：
+                                    “We propose an automated approach to autonomously achieve program improvement. ”
+                                    “我们提出了一种自动化方法，以自主实现程序改进。”
+                                -- 问题：
+                                    to从句形式不符合中文学术文章中的语法习惯
+                                    学术文章里面禁止出现“我们”一词
+                                -- 更正方法：
+                                    “本文提出一种自动改进程序的方法。”
+                                ]
+                            """),
+        "need_history": False,
+        "query_construction": "{MAIN_INPUT_PLACEHOLDER}\n" + PROMPT_DO_IT_ZH
     },
-    blocking=False
+    blocking=True
 )
 
-# 在母体中，创建一个中文专业化智能体
-智能体_本地化 = nest.create_agent(
-    agent_id=f"本地化",
-    agent_class="agent_matrix.agent.agent_basic_qa->BasicQaAgent",
-    agent_kwargs={"sys_prompt":
-        "你是一个中文本地化专者，你的任务是将不符合中文语言习惯的句子进行修改。你的队伍中还有一个校对者和一个润色者，你只需要做好自己的分内工作，不能僭越其他人的工作。使用中文。",
-        "query_construction": "Do your job according to the instructions."
+
+# 为这个高级翻译者创建一个子智能体，用于纠正生硬的翻译，使其更符合中文语言习惯
+punctuation_editor = pro_zh_translator.create_agent(
+    agent_id=f"punctuation_editor",
+    agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
+    agent_kwargs={
+        "sys_prompt": dedent("""
+                                移除句子中所有的“我们”一词，将涉及到的动词改为被动语态。仅输出修改后的句子。
+
+                                举例1：
+                                    We note that the workflow of AutoCodeRover...
+                                    错误翻译：我们注意到，到目前为止讨论的AutoCodeRover的工作流程...
+                                    改正方法：直接删除
+
+                                举例2：
+                                    We present a case study on one of the tasks uniquely resolved by ACR-val-sbfl...
+                                    错误翻译：我们呈现了一个由ACR-val-sbfl独特解决的任务的案例研究...
+                                    改正方法：替换成“本文”，“本节”
+                                """),
+        "need_history": False,
+        "query_construction": "{MAIN_INPUT_PLACEHOLDER}\n" + PROMPT_DO_IT_ZH
     },
-    blocking=False
+    blocking=True
 )
 
-# 在母体中，创建一个中文专业化智能体
-智能体_总结者 = nest.create_agent(
-    agent_id=f"总结者",
-    agent_class="agent_matrix.agent.agent_basic_qa->BasicQaAgent",
-    agent_kwargs={"sys_prompt":
-        "你的任务是将校对者、润色者和本地化者的工作结果进行汇总，形成最终的文本。你不得输出除最终文本之外的任何废话。使用中文。",
-        "query_construction": "Do your job according to the instructions."
-    },
-    blocking=False
-)
-
-智能体_校对者 = mmm.search_children_by_id("校对者", blocking=True)
-智能体_润色者 = mmm.search_children_by_id("润色者", blocking=True)
-智能体_本地化 = mmm.search_children_by_id("本地化", blocking=True)
-智能体_总结者 = mmm.search_children_by_id("总结者", blocking=True)
-
-# # 在母体中，创建一个中文专业化智能体
-# 智能体_反思者 = nest.create_agent(
-#     agent_id=f"反思者",
-#     agent_class="agent_matrix.agent.agent_basic_qa->BasicQaAgent",
-#     agent_kwargs={"sys_prompt":
-#         "你的任务是将校对者、润色者和本地化者的工作结果进行汇总，形成最终的文本。你不得输出除最终文本之外的任何废话。使用中文。",
-#         "query_construction": "Do your job according to the instructions."
-#     }
-# )
 
 # 用明确的边连接定义智能体的交互
-智能体_校对者.create_edge_to(dst_agent_id=智能体_润色者)
-智能体_润色者.create_edge_to(dst_agent_id=智能体_本地化)
-智能体_本地化.create_edge_to(dst_agent_id=智能体_总结者)
+primitive_translation.create_edge_to(dst_agent_id=passive_editor)
+passive_editor.create_edge_to(dst_agent_id=adjust_grammar)
 
 # 好了，一切就绪，激活所有智能体，让他们开始工作
-智能体_校对者.activate()
-智能体_校对者.activate()
-智能体_润色者.activate()
-智能体_本地化.activate()
-nest.activate()
+primitive_translation.activate()
+passive_editor.activate()
+adjust_grammar.activate()
+pro_zh_translator.activate()
 
-nest.wakeup(r"""
-你需要处理的材料如下：
-国内企业非常重视群体系统的落地应用。以京东和菜鸟为代表的一些企业也在群体系统领域投入了大量的研究。如图~\ref{fig:jd-deliver} 所示，京东仓储物流基本实现了仓库内以多无人车系统代替人工的自动化流程，建立了以自动导引车（Automated Guided Vehicle, AGV）和拣货机械臂相互配合的物流分拣系统，降本增效提高了货物归纳和分拣的效率。受到近年来高速发展的互联网经济影响，国内其他涉及仓储物流的创业公司也都加大了对货运机器人集群的投入，如极智嘉，隆博科技AICROBO，蓝胖子Dorabot等。在无人机集群灯光表演上，亿航无人机于2017年在广州塔前完成了1180架无人机集群编队灯光表演，随后，高巨无人机于2019年以2100架无人机集群编队表演献礼新中国成立70周年，再次刷新了记录。群体智能技术辅助下的高效物流网络逐渐我国基础设施的一部分，例如在2020年新冠疫情的高峰期间，顺畅的物流设施对于防疫工作开展起到了至关重要的作用。在游戏仿真当中，腾讯提出一个具有低耦合和高可扩展性的深度强化学习框架\citep{ye2020mastering}，解决了王者荣耀游戏中的AI智能体训练问题，可以在多智能体博弈环境下击败顶级职业人类玩家。阿里巴巴认知计算实验室设计了多智能体双向协调网络 (Bidirectionally-Coordinated Network，简称BiCNet），可以促进智能体之间的通信协作学习，实现了智能体在网络隐含层进行信息传递与沟通，并在星际争霸游戏中实现了群体协调移动与攻击等战术生成 \citep{peng2017multiagent}。
-""")
+pro_zh_translator.wakeup(r"""
+We selected two recent LLM-based agent systems Swe-agent [38] and Magis
+[32] designed for SWE-bench tasks as baselines and compare their performance against our AutoCodeRover.
+Swe-agent is publicly available as a GitHub repository4,
+so we replicated it as Swe-agent-rep with the default
+setting based on the provided scripts. In contrast to Sweagent, we do not have access to Magis, so we take the
+most relevant reported result from their technical report
+[32]. To avoid the natural randomness of LLM,
+we repeat our experiments with AutoCodeRover and Sweagent-rep on SWE-bench lite three times. We use (1) the
+percentage of resolved instances, (2) average time cost,
+and (3) average token cost to evaluate the effectiveness of
+the tools. The three evaluation metrics represent overall
+effectiveness, time efficiency, and economic efficacy in
+resolving real-world GitHub issues. For AutoCodeRover
+and Swe-agent-rep, we report the average and total number of resolved instances across three repetitions.
+""".replace("\n", " "))
 
 
 
