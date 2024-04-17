@@ -6,10 +6,12 @@
 
 The Core Insight of This Project: Achieving Higher Intelligence via **Nested** Agents.
 
-![image](https://github.com/binary-husky/agent-university/assets/96192199/1e63278f-0453-4b84-83c7-deb7c92ac466)
-
+<div align="center">
+<img src=https://github.com/binary-husky/agent-matrix/assets/96192199/7d3e2856-9c37-46af-ba26-662f135ffac7" width="600" >
+</div>
 
 ## Initialize
+
 
 ![image](https://github.com/binary-husky/agent-matrix/assets/96192199/991a47f3-e805-43d5-a62f-da7def5ba5f5)
 
