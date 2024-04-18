@@ -2,7 +2,8 @@ from datetime import datetime
 from typing import List, Optional, Any
 from pydantic import BaseModel
 from textwrap import dedent, indent
-downstream = "downstream"
+auto_downstream = "auto_downstream"
+no_downstream = "no_downstream"
 
 def concrete_str(string):
     res = string.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ').replace('  ', ' ')
@@ -69,7 +70,7 @@ class GeneralMsg(BaseModel):
 
     need_reply: bool = False
 
-    downstream_override: str = downstream
+    downstream_override: str = None
 
     kwargs: dict = {}
 

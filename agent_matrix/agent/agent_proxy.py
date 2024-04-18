@@ -4,7 +4,7 @@ import threading
 from loguru import logger
 from fastapi import WebSocket
 from agent_matrix.agent.interaction import InteractionManager
-from agent_matrix.msg.general_msg import GeneralMsg
+from agent_matrix.msg.general_msg import GeneralMsg, auto_downstream, no_downstream
 from typing import List
 from typing_extensions import Self
 from rich import print
@@ -53,6 +53,7 @@ class BaseProxy(object):
         self.event_triggers = {}
         self.interaction = InteractionManager(self)
         self.allow_level_up = True
+        return
 
     def update_connection_info(self,
                                websocket: WebSocket = None,
@@ -77,6 +78,7 @@ class BaseProxy(object):
         if message_queue_in is not None:
             self.message_queue_get_from_real_agent = message_queue_in
         self.connected_event.set()
+        return
 
     def send_to_real_agent(self, msg):
         """
@@ -86,6 +88,7 @@ class BaseProxy(object):
         - msg: 要发送的命令
         """
         self.message_queue_send_to_real_agent.put_nowait(msg)
+        return
 
     def get_from_real_agent(self):
         """
@@ -106,6 +109,7 @@ class BaseProxy(object):
         msg.dst = self.agent_id
         msg.command = "on_agent_wakeup"
         self.send_to_real_agent(msg)
+        return
 
     def ___on_agent_finish___(self, msg):
         """ AT HERE, THE AGENT FINISH WORK !
@@ -124,9 +128,28 @@ class BaseProxy(object):
         # has children, need to wake up children
         # now, assert
         assert (msg.level_shift == '→' or msg.level_shift == '↓')
-
         # good, now wake up children
         selected_child = self.direct_children[0]
+        self._wakeup_child_agent(msg, selected_child)
+        # do not need to turn to follow downstream agents, this agent is not done yet !
+        return
+
+    def wakeup_downstream_agent(self, msg):
+        # find downstream agents
+        downstream_agent_id_arr = list(self.interaction.get_downstream())
+        downstream_override = msg.get("downstream_override", None)
+        if downstream_override:
+            if downstream_override == auto_downstream:
+                self._wakeup_downstream_agent_regular(msg)
+            elif downstream_override == no_downstream:
+                self._wakeup_parent(msg)
+            else:
+                self._wakeup_brother_agent(msg, downstream_override)
+        else:
+            self._wakeup_downstream_agent_regular(msg)
+        return
+
+    def _wakeup_child_agent(self, msg, selected_child):
         # mark level as shift down
         msg.level_shift = '↓'
         # wake up its children
@@ -135,47 +158,61 @@ class BaseProxy(object):
         # print(Panel(f"Agent 「{msg.src}」 --> Child ↓↓ 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
         print(Panel(self.matrix.build_tree(target=msg.dst)))
         selected_child.___on_agent_wakeup___(msg)
-        # do not need to turn to follow downstream agents, this agent is not done yet !
         return
 
+    def _wakeup_parent(self, msg):
+        if (self.parent is self.matrix) or (self.allow_level_up is False):
+            # this is the root agent, do not need to return to parent
+            self._terminate_exe(msg)
+            return
+        # deliver message to parent, let parent handle it
+        msg.src = self.agent_id
+        msg.dst = self.parent.agent_id
+        msg.level_shift = '↑'
+        # print(Panel(f"Agent 「{msg.src}」 --> Parent ↑↑ 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
+        print(Panel(self.matrix.build_tree(target=msg.dst)))
+        self.parent.___on_agent_wakeup___(msg)
+        return
 
-    def wakeup_downstream_agent(self, msg):
-        # find downstream agents
+    def _wakeup_brother_agent(self, msg, downstream_agent_id):
+        downstream_agent = self.parent.search_children_by_id(downstream_agent_id)
+        if (downstream_agent):
+            # send message to downstream agent
+            msg.src = self.agent_id
+            msg.dst = downstream_agent_id
+            msg.level_shift = '→'
+            # print(Panel(f"Agent 「{msg.src}」 --> 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
+            print(Panel(self.matrix.build_tree(target=msg.dst)))
+            downstream_agent.___on_agent_wakeup___(msg)
+        return
+
+    def _terminate_exe(self, msg):
+        msg.src = self.agent_id
+        msg.level_shift = '→'
+        msg.dst = 'No More Downstream Agents!'
+        print(Panel(f"Agent 「{msg.src}」 --> 「{msg.dst}」\n Final Message: \n {msg.print_string()}"))
+        print(Panel(self.matrix.build_tree(target=msg.dst)))
+        return
+
+    def _wakeup_downstream_agent_regular(self, msg):
         downstream_agent_id_arr = list(self.interaction.get_downstream())
-
         # has any downstream agent ?
         if len(downstream_agent_id_arr) == 0:
             # there is no downstream agent
             if (self.parent is self.matrix) or (self.allow_level_up is False):
                 # this is the root agent, do not need to return to parent
-                msg.src = self.agent_id
-                msg.level_shift = '→'
-                msg.dst = 'No More Downstream Agents!'
-                print(Panel(f"Agent 「{msg.src}」 --> 「{msg.dst}」\n Final Message: \n {msg.print_string()}"))
-                print(Panel(self.matrix.build_tree(target=msg.dst)))
+                self._terminate_exe(msg)
             else:
-                # deliver message to parent, let parent handle it
-                msg.src = self.agent_id
-                msg.dst = self.parent.agent_id
-                msg.level_shift = '↑'
-                # print(Panel(f"Agent 「{msg.src}」 --> Parent ↑↑ 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
-                print(Panel(self.matrix.build_tree(target=msg.dst)))
-                self.parent.___on_agent_wakeup___(msg)
+                self._wakeup_parent(msg)
         else:
             # there is downstream agent
             for downstream_agent_id in downstream_agent_id_arr:
-                downstream_agent = self.parent.search_children_by_id(downstream_agent_id)
-                if (downstream_agent):
-                    # send message to downstream agent
-                    msg.src = self.agent_id
-                    msg.dst = downstream_agent_id
-                    msg.level_shift = '→'
-                    # print(Panel(f"Agent 「{msg.src}」 --> 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
-                    print(Panel(self.matrix.build_tree(target=msg.dst)))
-                    downstream_agent.___on_agent_wakeup___(msg)
+                self._wakeup_brother_agent(msg, downstream_agent_id)
+        return
 
     def register_trigger(self, command, event):
         self.event_triggers[command] = event
+        return
 
     def handle_command(self, msg: GeneralMsg):
         if msg.command in self.event_triggers.keys():
@@ -186,6 +223,7 @@ class BaseProxy(object):
             self.___on_agent_finish___(msg)
         else:
             raise ValueError(f"Unknown command {msg.command}")
+        return
 
     def send_msg_and_wait_reply(self, wait_command:str, msg: GeneralMsg):
         """ Send msg, then keep waiting until receiving expected reply.
@@ -310,7 +348,7 @@ class AgentProxy(BaseProxy):
         if isinstance(dst_agent_id, list):
             for d in dst_agent_id:
                 if not isinstance(d, str): d = d.agent_id
-                self.create_edge_to(d)
+                if d != auto_downstream: self.create_edge_to(d)
             return
         if not isinstance(dst_agent_id, str):
             raise ValueError(f"dst_agent_id must be a string, but got {dst_agent_id}")

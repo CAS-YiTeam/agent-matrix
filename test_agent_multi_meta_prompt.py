@@ -1,5 +1,5 @@
 from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
-from agent_matrix.msg.general_msg import downstream
+from agent_matrix.msg.general_msg import auto_downstream
 from textwrap import dedent
 
 PROMPT_DO_IT = "Do your job according to the instructions."
@@ -97,10 +97,10 @@ switch_agent = meta_expert_2.create_downstream_agent(
     agent_class="agent_matrix.agent.switch_agent->SwitchAgent",
     agent_kwargs={
         "condition_callback": condition_callback,
-        "downstream_options": [expert, downstream],
+        "downstream_options": [expert, auto_downstream],
     },
 )
-switch_agent.create_edge_to([expert, downstream])
+switch_agent.create_edge_to([expert, auto_downstream])
 
 
 

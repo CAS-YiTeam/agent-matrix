@@ -12,8 +12,7 @@ class SwitchAgent(Agent):
 
     def on_agent_wakeup(self, kwargs, msg):
         main_input = kwargs["main_input"]
-        if self.condition_callback(main_input, self.downstream_options):
-            downstream_override = self.downstream_options[main_input]
+        downstream_override = self.condition_callback(main_input, self.downstream_options)
         kwargs.update({'downstream_override': downstream_override})
         return kwargs
 
