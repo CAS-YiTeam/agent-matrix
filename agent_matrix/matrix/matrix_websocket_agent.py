@@ -1,9 +1,3 @@
-import os
-import sys
-import time
-import uuid
-import json
-import platform
 import pickle
 import asyncio
 import threading
@@ -14,7 +8,7 @@ from fastapi import FastAPI, WebSocket
 from agent_matrix.agent.agent_proxy import AgentProxy
 from agent_matrix.agentcraft.agentcraft_proxy import AgentCraftProxy
 from agent_matrix.msg.general_msg import GeneralMsg
-from agent_matrix.msg.general_msg import UserInterfaceMsg
+from agent_matrix.msg.ui_msg import UserInterfaceMsg
 # from agent_matrix.matrix.matrix_userinterface_bridge import UserInterfaceBridge
 from typing import List
 

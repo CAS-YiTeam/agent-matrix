@@ -1,6 +1,3 @@
-import os
-import sys
-import time
 import uuid
 import json
 import platform
@@ -14,7 +11,7 @@ from fastapi import FastAPI, WebSocket
 from agent_matrix.agent.agent_proxy import AgentProxy
 from agent_matrix.agentcraft.agentcraft_proxy import AgentCraftProxy
 from agent_matrix.msg.general_msg import GeneralMsg
-from agent_matrix.msg.general_msg import UserInterfaceMsg
+from agent_matrix.msg.ui_msg import UserInterfaceMsg
 # from agent_matrix.matrix.matrix_userinterface_bridge import UserInterfaceBridge
 from typing import List
 from agent_matrix.matrix.matrix_websocket_agent import PythonMethod_AsyncConnectionMaintainer
@@ -92,9 +89,9 @@ class MasterMindWebSocketServer(PythonMethod_AsyncConnectionMaintainer, PythonMe
                     await websocket.send_bytes(msg.json())
                     await self.maintain_agentcraft_interface_connection_forever(agentcraft_interface_id, websocket, client_id)
 
-            logger.info("uvicorn starts")
+            # logger.info("uvicorn starts")
             import uvicorn
-            config = uvicorn.Config(app, host=self.host, port=self.port, log_level="info")
+            config = uvicorn.Config(app, host=self.host, port=self.port, log_level="error")
             server = uvicorn.Server(config)
             await server.serve()
 

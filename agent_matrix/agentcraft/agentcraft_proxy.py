@@ -3,7 +3,7 @@ import asyncio
 import threading
 from loguru import logger
 from fastapi import WebSocket
-from agent_matrix.msg.general_msg import UserInterfaceMsg
+from agent_matrix.msg.ui_msg import UserInterfaceMsg
 from typing import List
 from typing_extensions import Self
 

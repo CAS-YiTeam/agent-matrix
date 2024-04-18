@@ -1,13 +1,6 @@
-import os
-import sys
 import time
-import platform
-import asyncio
-import websockets
 import pickle
 import threading
-from queue import Queue
-from fastapi import FastAPI, WebSocket
 try:
     from websockets.sync.client import connect
 except ImportError:
@@ -26,6 +19,7 @@ class AgentBasic(object):
         self.matrix_port = kwargs["matrix_port"]
         self._websocket_connection = None
         self._activation_event = Event()
+        self.activate = False
 
     def __del__(self):
         try:
@@ -78,14 +72,14 @@ class AgentBasic(object):
                 #   and all its children have finished their tasks.
                 #   It is time that this parent exam all the work done by its children
                 #   and decide what to do next.
-                downstream = self.on_children_fin(msg.kwargs)
+                downstream = self.on_children_fin(msg.kwargs, msg)
             else:
                 # Case 1:
                 # - If this agent is a parent (with at least one child agent),
                 #   on_agent_wakeup will be called, and its children will handle more work afterwards.
                 # - If this agent has no children,
                 #   on_agent_wakeup will be called.
-                downstream = self.on_agent_wakeup(msg.kwargs)
+                downstream = self.on_agent_wakeup(msg.kwargs, msg)
 
             # deliver message to downstream
             # (don't worry, agent proxy will deal with it,
@@ -94,10 +88,10 @@ class AgentBasic(object):
         else:
             raise NotImplementedError
 
-    def on_agent_wakeup(self, kwargs):
+    def on_agent_wakeup(self, kwargs, msg):
         raise NotImplementedError
 
-    def on_children_fin(self, kwargs):
+    def on_children_fin(self, kwargs, msg):
         raise NotImplementedError
 
     def on_agent_fin(self, downstream, msg):
@@ -105,6 +99,9 @@ class AgentBasic(object):
         msg.dst = self.proxy_id
         msg.command = "on_agent_fin"
         msg.kwargs = downstream
+        # for switch agent, add downstream_override
+        if downstream.get("downstream_override", None):
+            msg.downstream_override = downstream["downstream_override"]
         # keep level shift unchanged
         msg.level_shift = msg.level_shift
         self._send_msg(msg)
@@ -138,19 +135,18 @@ class AgentBasic(object):
 class Agent(AgentBasic):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.activate = False
 
     def agent_task_cycle(self):
         print('Hi, you have to implement this function (Agent.agent_task_cycle) in your subclass.')
         time.sleep(2.0)
         raise NotImplementedError
 
-    def on_agent_wakeup(self, kwargs):
+    def on_agent_wakeup(self, kwargs, msg):
         print('Hi, you have to implement this function (Agent.on_agent_wakeup) in your subclass.')
         time.sleep(2.0)
         raise NotImplementedError
 
-    def on_children_fin(self, kwargs):
+    def on_children_fin(self, kwargs, msg):
         print('Hi, you have to implement this function (Agent.on_children_fin) in your subclass.')
         time.sleep(2.0)
         raise NotImplementedError
@@ -161,8 +157,8 @@ class EchoAgent(Agent):
     def agent_task_cycle(self):
         return
 
-    def on_agent_wakeup(self, kwargs):
+    def on_agent_wakeup(self, kwargs, msg):
         return kwargs
 
-    def on_children_fin(self, kwargs):
+    def on_children_fin(self, kwargs, msg):
         return kwargs

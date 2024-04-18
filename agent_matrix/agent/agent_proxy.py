@@ -10,6 +10,7 @@ from typing_extensions import Self
 from rich import print
 from rich.panel import Panel
 
+
 class BaseProxy(object):
     """
     一个Agent在母体中的代理对象
@@ -51,6 +52,7 @@ class BaseProxy(object):
         self.agent_location = [0,0,0]
         self.event_triggers = {}
         self.interaction = InteractionManager(self)
+        self.allow_level_up = True
 
     def update_connection_info(self,
                                websocket: WebSocket = None,
@@ -130,7 +132,7 @@ class BaseProxy(object):
         # wake up its children
         msg.src = self.agent_id
         msg.dst = selected_child.agent_id
-        print(Panel(f"Agent 「{msg.src}」 --> Child ↓↓ 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
+        # print(Panel(f"Agent 「{msg.src}」 --> Child ↓↓ 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
         print(Panel(self.matrix.build_tree(target=msg.dst)))
         selected_child.___on_agent_wakeup___(msg)
         # do not need to turn to follow downstream agents, this agent is not done yet !
@@ -144,7 +146,7 @@ class BaseProxy(object):
         # has any downstream agent ?
         if len(downstream_agent_id_arr) == 0:
             # there is no downstream agent
-            if self.parent is self.matrix:
+            if (self.parent is self.matrix) or (self.allow_level_up is False):
                 # this is the root agent, do not need to return to parent
                 msg.src = self.agent_id
                 msg.level_shift = '→'
@@ -156,7 +158,7 @@ class BaseProxy(object):
                 msg.src = self.agent_id
                 msg.dst = self.parent.agent_id
                 msg.level_shift = '↑'
-                print(Panel(f"Agent 「{msg.src}」 --> Parent ↑↑ 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
+                # print(Panel(f"Agent 「{msg.src}」 --> Parent ↑↑ 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
                 print(Panel(self.matrix.build_tree(target=msg.dst)))
                 self.parent.___on_agent_wakeup___(msg)
         else:
@@ -168,7 +170,7 @@ class BaseProxy(object):
                     msg.src = self.agent_id
                     msg.dst = downstream_agent_id
                     msg.level_shift = '→'
-                    print(Panel(f"Agent 「{msg.src}」 --> 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
+                    # print(Panel(f"Agent 「{msg.src}」 --> 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
                     print(Panel(self.matrix.build_tree(target=msg.dst)))
                     downstream_agent.___on_agent_wakeup___(msg)
 
@@ -305,6 +307,13 @@ class AgentProxy(BaseProxy):
     def create_edge_to(self, dst_agent_id:str):
         """ Make an agent its downstream agent.
         """
+        if isinstance(dst_agent_id, list):
+            for d in dst_agent_id:
+                if not isinstance(d, str): d = d.agent_id
+                self.create_edge_to(d)
+            return
+        if not isinstance(dst_agent_id, str):
+            raise ValueError(f"dst_agent_id must be a string, but got {dst_agent_id}")
         # downstream_agent_proxy = self.matrix.find_agent_by_id(dst_agent)
         if isinstance(dst_agent_id, self.__class__):
             dst_agent_id = dst_agent_id.agent_id
@@ -330,6 +339,10 @@ class AgentProxy(BaseProxy):
         )
         msg.src = 'user'
         msg.dst = self.agent_id
-        print(Panel(f"Agent 「{self.agent_id}」is waking up! \n Delivering Message: \n {msg.print_string()}"))
+        # print(Panel(f"Agent 「{self.agent_id}」is waking up! \n Delivering Message: \n {msg.print_string()}"))
         print(Panel(self.matrix.build_tree(target=msg.dst)))
         self.___on_agent_wakeup___(msg)
+
+    # @user_fn
+    def test_agent(self, main_input):
+        self.wakeup(main_input)

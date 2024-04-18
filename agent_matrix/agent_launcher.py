@@ -1,7 +1,8 @@
 import os
 import sys
 import argparse
-import json
+import cloudpickle as pickle
+import base64
 
 if __name__ == "__main__":
 
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     # Print the parsed inputs
     agent_id = args.agent_id
     agent_class = args.agent_class
-    agent_kwargs = json.loads(args.agent_kwargs)
+    agent_kwargs = pickle.loads(base64.b64decode(args.agent_kwargs))
     matrix_host = args.matrix_host
     matrix_port = args.matrix_port
     agent_init_kwargs = {

@@ -1,4 +1,5 @@
-from agent_matrix.msg.general_msg import GeneralMsg, UserInterfaceMsg
+from agent_matrix.msg.general_msg import GeneralMsg
+from agent_matrix.msg.ui_msg import UserInterfaceMsg
 from agent_matrix.agentcraft.agentcraft_proxy import AgentCraftProxy
 import asyncio
 import json

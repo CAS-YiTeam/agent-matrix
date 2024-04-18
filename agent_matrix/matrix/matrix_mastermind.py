@@ -1,22 +1,19 @@
 import os
 import sys
 import time
-import uuid
-import json
-import platform
-import pickle
+import base64
+import cloudpickle as pickle
 import asyncio
 import threading
 import subprocess
 from loguru import logger
-from queue import Queue
-from fastapi import FastAPI, WebSocket
 from agent_matrix.agent.agent_proxy import AgentProxy
-from agent_matrix.msg.general_msg import GeneralMsg
 from agent_matrix.matrix.matrix_websocket import MasterMindWebSocketServer
-from typing import List
+from agent_matrix.shared.serialize import clean_up_unpickleble
 from rich.panel import Panel
+from rich.text import Text
 from rich import print
+from rich.columns import Columns
 
 
 class MasterMindMatrix(MasterMindWebSocketServer):
@@ -65,7 +62,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                      agent_class: str,
                      agent_kwargs: dict,
                      remote_matrix_kwargs: dict = None,
-                     parent: AgentProxy = None):
+                     parent: AgentProxy = None)->AgentProxy:
         """ 用阻塞的方式，创建一个智能体，并等待它连接到母体
         """
         logger.info(f"create agent {agent_id}")
@@ -97,6 +94,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
 
             self.websocket_connections[agent_id] = agent_proxy
             self.register_parent(parent=parent, agent_proxy=agent_proxy)
+            agent_kwargs = clean_up_unpickleble(agent_kwargs)
             # 启动一个子进程，用于启动一个智能体
             subprocess.Popen(
                 args=(
@@ -106,7 +104,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                     "--agent-class", agent_class,
                     "--matrix-host", str(host),
                     "--matrix-port", str(port),
-                    "--agent-kwargs", json.dumps(agent_kwargs),
+                    "--agent-kwargs", base64.b64encode(pickle.dumps(agent_kwargs)),
                 )
             )
 
@@ -121,9 +119,9 @@ class MasterMindMatrix(MasterMindWebSocketServer):
             if agent_proxy.connected_event.is_set():
                 # 成功！
                 logger.info(f"agent {agent_id} connected to matrix")
-                self.build_tree(target=agent_id)
+                self.build_tree(target="")
                 # Render the tree
-                print(Panel(self.agent_tree))
+                print(Panel(Columns([Text("New Agent Up"), self.agent_tree])))
                 return agent_proxy
             else:
                 logger.error(f"agent {agent_id} failed to connect to matrix within the timeout limit")
