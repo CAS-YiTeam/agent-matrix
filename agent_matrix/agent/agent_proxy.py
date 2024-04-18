@@ -271,6 +271,11 @@ class AgentProxy(BaseProxy):
     def create_agent(self, *args, **kwargs) -> Self:
         return self.create_child_agent(*args, **kwargs)
 
+    # @user_fn
+    def create_downstream_agent(self, *args, **kwargs) -> Self:
+        new_agent = self.parent.create_child_agent(*args, **kwargs)
+        self.create_edge_to(new_agent.agent_id)
+        return new_agent
 
     # @user_fn
     def activate_agent(self):

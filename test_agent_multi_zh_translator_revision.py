@@ -13,7 +13,7 @@ mmm = MasterMindMatrix(host='localhost', port=10101, dedicated_server=False)
 mmm.begin_event_loop_non_blocking()
 
 # 在母体中，创建一个嵌套智能体，一个高级的翻译者
-pro_zh_translator = mmm.create_agent(
+pro_zh_translator = mmm.create_child_agent(
     agent_id=f"pro_zh_translator",
     agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
     agent_kwargs={
@@ -27,7 +27,7 @@ pro_zh_translator = mmm.create_agent(
 
 
 # 为这个高级翻译者创建一个子智能体，用于纠正生硬的翻译，使其更符合中文语言习惯
-passive_editor = pro_zh_translator.create_agent(
+passive_editor = pro_zh_translator.create_child_agent(
     agent_id=f"passive_editor",
     agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
     agent_kwargs={
@@ -49,8 +49,7 @@ passive_editor = pro_zh_translator.create_agent(
     }
 )
 
-
-reflector = passive_editor.create_agent(
+reflector = passive_editor.create_child_agent(
     agent_id=f"reflector",
     agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
     agent_kwargs={
@@ -59,7 +58,8 @@ reflector = passive_editor.create_agent(
         "query_construction": f"你知道智能体「{passive_editor.agent_id}」犯了什么错误吗？请检查并修正。"
     }
 )
-reflector.create_agent(
+
+reflector.create_child_agent(
     agent_id=f"correct_domain",
     agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
     agent_kwargs={
@@ -68,16 +68,13 @@ reflector.create_agent(
     }
 )
 
-
-concluder = pro_zh_translator.create_agent(
+concluder = passive_editor.create_downstream_agent(
     agent_id=f"concluder",
     agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
     agent_kwargs={
         "query_construction": "给出以上智能体（「pro_zh_translator」，「passive_editor」，「reflector」）讨论的最终翻译结果，用```包裹翻译结果。"
     }
 )
-
-passive_editor.create_edge_to(concluder)
 
 # 好了，一切就绪，激活所有智能体，让他们开始工作
 pro_zh_translator.activate_all_children()
