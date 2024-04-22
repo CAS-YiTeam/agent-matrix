@@ -350,6 +350,8 @@ class AgentProxy(BaseProxy):
                 if not isinstance(d, str): d = d.agent_id
                 if d != auto_downstream: self.create_edge_to(d)
             return
+        if isinstance(dst_agent_id, self.__class__):
+            dst_agent_id = dst_agent_id.agent_id
         if not isinstance(dst_agent_id, str):
             raise ValueError(f"dst_agent_id must be a string, but got {dst_agent_id}")
         # downstream_agent_proxy = self.matrix.find_agent_by_id(dst_agent)
