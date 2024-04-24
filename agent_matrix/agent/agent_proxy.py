@@ -42,14 +42,21 @@ class BaseProxy(object):
         self.direct_children: List[BaseProxy] = []
         self.parent: BaseProxy = parent
         self.connected_event = threading.Event()
+
         self.agent_id = agent_id
+        self.agent_location = [0,0,0]
+        self.agent_ue_class = "CubeAgent"
+        self.agent_status = ""
+        self.agent_animation = "Standing"
+        self.agent_activity = "inactive"
+        self.agent_request = ""
+
         self.proxy_id = '_proxy_' + agent_id
         self.websocket = websocket
         self.agent_kwargs = agent_kwargs
         self.client_id = client_id
         self.message_queue_send_to_real_agent = message_queue_out
         self.message_queue_get_from_real_agent = message_queue_in
-        self.agent_location = [0,0,0]
         self.event_triggers = {}
         self.interaction = InteractionManager(self)
         self.allow_level_up = True
