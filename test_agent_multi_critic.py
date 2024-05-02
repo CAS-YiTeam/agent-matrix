@@ -69,7 +69,6 @@ agent_kwargs = {""}
 
 # 好了，一切就绪，激活所有智能体，让他们开始工作
 智能体_校对者.activate()
-智能体_校对者.activate()
 智能体_润色者.activate()
 智能体_本地化.activate()
 nest.activate()

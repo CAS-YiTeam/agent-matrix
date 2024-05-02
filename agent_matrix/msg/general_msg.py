@@ -78,3 +78,6 @@ class GeneralMsg(BaseModel):
 
     def print_string(self):
         return print_msg_string(self.kwargs, self)
+
+    def get(self, msg, default=None):
+        return self.kwargs.get(msg, default)

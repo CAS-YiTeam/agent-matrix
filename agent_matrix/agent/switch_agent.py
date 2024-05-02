@@ -1,3 +1,4 @@
+import time
 from agent_matrix.agent.agent import Agent
 
 class SwitchAgent(Agent):
@@ -8,6 +9,7 @@ class SwitchAgent(Agent):
         self.downstream_options = kwargs.get("downstream_options")
 
     def agent_task_cycle(self):
+        time.sleep(60.0)
         return
 
     def on_agent_wakeup(self, kwargs, msg):

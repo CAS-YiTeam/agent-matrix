@@ -9,7 +9,7 @@ from agent_matrix.msg.general_msg import GeneralMsg
 from threading import Event
 
 
-class AgentBasic(object):
+class AgentProperties(object):
 
     def __init__(self, **kwargs) -> None:
         self.is_proxy = kwargs["is_proxy"]
@@ -21,11 +21,61 @@ class AgentBasic(object):
         self._activation_event = Event()
         self.activate = False
 
-    def __del__(self):
-        try:
-            self._websocket_connection.close()
-        except:
-            pass
+    @property
+    def agent_status(self):
+        if not hasattr(self, "_agent_status"):
+            self._agent_status = agent_status_default = ""
+        return self._agent_status
+
+    @agent_status.setter
+    def agent_status(self, value):
+        if not hasattr(self, "_agent_status"):
+            self._agent_status = agent_status_default = ""
+        self._agent_status = self.update_property("agent_status", value)
+
+    @property
+    def agent_location(self):
+        if not hasattr(self, "_agent_location"):
+            self._agent_location = agent_location_default = [0, 0, 0]
+        return self._agent_location
+
+    @agent_location.setter
+    def agent_location(self, value):
+        if not hasattr(self, "_agent_location"):
+            self._agent_location = agent_location_default = [0, 0, 0]
+        self._agent_location = self.update_property("agent_location", value)
+
+    @property
+    def agent_animation(self):
+        if not hasattr(self, "_agent_animation"):
+            self._agent_animation = agent_animation_default = "Standing"
+        return self._agent_animation
+
+    @agent_animation.setter
+    def agent_animation(self, value):
+        if not hasattr(self, "_agent_animation"):
+            self._agent_animation = agent_animation_default = "Standing"
+        self._agent_animation = self.update_property("agent_animation", value)
+
+    @property
+    def agent_request(self):
+        if not hasattr(self, "_agent_request"):
+            self._agent_request = agent_request_default = ""
+        return self._agent_request
+
+    @agent_request.setter
+    def agent_request(self, value):
+        if not hasattr(self, "_agent_request"):
+            self._agent_request = agent_request_default = ""
+        self._agent_request = self.update_property("agent_request", value)
+
+    def update_property(self, property_name, property_value):
+        msg = GeneralMsg(src=self.agent_id, dst=self.proxy_id, command="on_update_status", kwargs={"property_name": property_name, "property_value": property_value})
+        self._send_msg(msg)
+        return property_value
+
+
+class AgentCommunication():
 
     def _connect_to_matrix(self):
         # do not call this function directly
@@ -88,6 +138,9 @@ class AgentBasic(object):
         else:
             raise NotImplementedError
 
+
+class AgentBasic(AgentProperties, AgentCommunication):
+
     def on_agent_wakeup(self, kwargs, msg):
         raise NotImplementedError
 
@@ -126,10 +179,19 @@ class AgentBasic(object):
         threading.Thread(target=self._begin_acquire_command, daemon=True).start()
         while True:
             if self._activation_event.is_set():
+                tic = time.time()
                 self.agent_task_cycle()
+                toc = time.time()
+                if toc - tic < 1.0:
+                    time.sleep(1.0)  # avoid frequent task cycles that is less than 1 second
             else:
                 self._activation_event.wait()
 
+    def __del__(self):
+        try:
+            self._websocket_connection.close()
+        except:
+            pass
 
 
 class Agent(AgentBasic):
@@ -150,7 +212,6 @@ class Agent(AgentBasic):
         print('Hi, you have to implement this function (Agent.on_children_fin) in your subclass.')
         time.sleep(2.0)
         raise NotImplementedError
-
 
 
 class EchoAgent(Agent):

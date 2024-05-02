@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import traceback
 import cloudpickle as pickle
 import base64
 
@@ -43,4 +44,11 @@ if __name__ == "__main__":
     }
     agent_init_kwargs.update(agent_kwargs)
     agent = hot_reload_class(agent_class)(**agent_init_kwargs)
-    agent.run()
+    try:
+        agent.run()
+    except KeyboardInterrupt:
+        print('\nKeyboardInterrupt: Exiting...\n')
+        print('---------------------------------')
+        print(agent_id)
+        traceback.print_exc()
+        print('---------------------------------')

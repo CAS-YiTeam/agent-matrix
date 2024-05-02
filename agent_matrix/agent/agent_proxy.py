@@ -112,6 +112,7 @@ class BaseProxy(object):
         """ AT HERE, THE AGENT BEGIN TO WORK !
                     ⏰⏰⏰⏰⏰
         """
+        self.agent_activity = "wakeup"
         msg.src = self.proxy_id
         msg.dst = self.agent_id
         msg.command = "on_agent_wakeup"
@@ -122,6 +123,7 @@ class BaseProxy(object):
         """ AT HERE, THE AGENT FINISH WORK !
                     🎉🎉🎉🎉🎉
         """
+        self.agent_activity = "sleeping"
         if len(self.direct_children) == 0:
             # no children, simple case, now turn to follow downstream agents (or its own parent)
             self.wakeup_downstream_agent(msg)
@@ -226,7 +228,9 @@ class BaseProxy(object):
             self.event_triggers[msg.command].return_value = msg
             self.event_triggers[msg.command].set()
             return
-        if msg.command == 'on_agent_fin':
+        if msg.command == 'on_update_status':
+            setattr(self, msg.kwargs["property_name"], msg.kwargs["property_value"])
+        elif msg.command == 'on_agent_fin':
             self.___on_agent_finish___(msg)
         else:
             raise ValueError(f"Unknown command {msg.command}")
@@ -334,6 +338,7 @@ class AgentProxy(BaseProxy):
         """
         msg = GeneralMsg(src=self.proxy_id, dst=self.agent_id, command="activate_agent", kwargs={}, need_reply=True)
         reply_msg = self.send_msg_and_wait_reply("activate_agent.re", msg)
+        self.agent_activity = "active"
 
     # @user_fn
     def activate_all_children(self):
@@ -344,8 +349,10 @@ class AgentProxy(BaseProxy):
 
         """
         for a in self.direct_children:
-            msg = GeneralMsg(src=self.proxy_id, dst=a.agent_id, command="activate_agent", kwargs={}, need_reply=True)
-            reply_msg = self.send_msg_and_wait_reply("activate_agent.re", msg)
+            a.activate_agent()
+            # msg = GeneralMsg(src=self.proxy_id, dst=a.agent_id, command="activate_agent", kwargs={}, need_reply=True)
+            # reply_msg = self.send_msg_and_wait_reply("activate_agent.re", msg)
+            # a.agent_activity = "active"
 
 
     # @user_fn

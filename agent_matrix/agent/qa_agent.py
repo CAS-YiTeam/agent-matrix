@@ -47,6 +47,7 @@ class BasicQaAgent(Agent):
 
     def agent_task_cycle(self):
         # do nothing
+        time.sleep(60.0)
         return
 
     def on_children_fin(self, kwargs, msg):
@@ -78,6 +79,7 @@ class BasicQaAgent(Agent):
 
         # 5. make the request
         raw_output = self.llm_request.generate_llm_request(query=query, history=history_for_llm_request, sys_prompt=sys_prompt)
+        self.agent_status = raw_output
         kwargs.update(
             {
                 "query": query,
