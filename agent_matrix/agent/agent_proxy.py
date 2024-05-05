@@ -45,7 +45,7 @@ class BaseProxy(object):
 
         self.agent_id = agent_id
         self.agent_location = [0,0,0]
-        self.agent_ue_class = "CubeAgent"
+        self.agent_ue_class = "CharacterAgent"
         self.agent_status = ""
         self.agent_animation = "Standing"
         self.agent_activity = "inactive"
@@ -376,6 +376,10 @@ class AgentProxy(BaseProxy):
             raise ValueError(f"Cannot find agent {dst_agent_id}, or its parent is not the same with {self.agent_id}")
         self.interaction.create_edge(self.agent_id, dst_agent_id)
         return
+
+    # @user_fn
+    def set_downstream_agent(self, dst_agent_id:str):
+        self.create_edge_to(dst_agent_id)
 
     # @user_fn
     def activate(self):

@@ -40,7 +40,7 @@ class BasicQaAgent(Agent):
         self.kwargs = kwargs
         self.sys_prompt = kwargs.get("sys_prompt", "")
         self.need_history = kwargs.get("need_history", True)
-        self.max_history_depth = kwargs.get("max_history_depth", 16)
+        self.max_history_depth = kwargs.get("max_history_depth", 8)
         self.prompt_examples = kwargs.get("prompt_examples", "")
         self.query_construction = kwargs.get("query_construction", "Do your job according to the instructions.") # default: tell lm to do its job according to the sys_prompt
         self.llm_request = RequestLlmSubClass(kwargs.get("temperature", 0.5))
