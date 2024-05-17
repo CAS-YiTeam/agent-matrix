@@ -56,21 +56,24 @@ class BasicQaAgent(Agent):
     def on_agent_wakeup(self, kwargs, msg):
         # 1. get history if there is any
         history = kwargs.get("history", [])
+        history_for_llm_request = []
+        history_for_llm_request.extend(history)
+        downstream_history = []
+        downstream_history.extend(history)
 
         # 2. build query
         main_input = kwargs["main_input"]
-
+        downstream_history.append(main_input)
         if "{MAIN_INPUT_PLACEHOLDER}" in self.query_construction:
             query = self.query_construction.format(MAIN_INPUT_PLACEHOLDER=main_input)
         else:
             query = self.query_construction
-            history.append(main_input)
+            history_for_llm_request.append(main_input)
 
         # 3. fetch system prompt
         sys_prompt = self.sys_prompt
 
         # 4. complete history
-        history_for_llm_request = history
         if not self.need_history:
             history_for_llm_request = []
         else:
@@ -94,11 +97,11 @@ class BasicQaAgent(Agent):
         # 6. send the request downstream
         downstream_input = """Agent 「{AGENT_ID}」:\n{AGENT_SPEECH}"""
         downstream_input = downstream_input.format(AGENT_ID=self.agent_id, AGENT_SPEECH=raw_output)
-        downstream = {"main_input": downstream_input, "history": history}
+        downstream = {"main_input": downstream_input, "history": downstream_history}
 
         # We do NOT append the downstream_input to the history,
         # it is the responsibility of the downstream agent to do so!
-        # history.append(downstream_input)
+        # X -- history.append(downstream_input)
 
         # return
         return downstream
