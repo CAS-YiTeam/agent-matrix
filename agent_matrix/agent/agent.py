@@ -116,6 +116,7 @@ class AgentCommunication():
             self.deactivate_agent()
         elif msg.command == "on_agent_wakeup":
             # deal with the message from upstream
+            msg.num_step += 1
             if msg.level_shift == '↑':
                 # Case 2:
                 # - This agent must be a parent with at leat one child agent,

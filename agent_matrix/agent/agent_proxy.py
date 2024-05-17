@@ -317,7 +317,14 @@ class AgentProxy(BaseProxy):
             return None
 
 
-
+    # @user_fn
+    def create_child_agent_sequential(self, agent_sequence:list):
+        children = []
+        for a_kwargs in agent_sequence:
+            new_a = self.create_agent(**a_kwargs)
+            if children: children[-1].create_edge_to(new_a)
+            children.append(new_a)
+        return children
     # @user_fn
     def create_agent(self, *args, **kwargs) -> Self:
         return self.create_child_agent(*args, **kwargs)

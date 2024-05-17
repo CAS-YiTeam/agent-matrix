@@ -1,8 +1,9 @@
 import time
+import copy
 from loguru import logger
 from agent_matrix.agent.agent import Agent
 from shared.config_loader import get_conf as agent_matrix_get_conf
-from msg.general_msg import print_msg_string
+from msg.general_msg import print_msg_string, GeneralMsg
 from rich.panel import Panel
 from rich import print
 logger.level("LLM", no=23)
@@ -50,11 +51,12 @@ class BasicQaAgent(Agent):
         time.sleep(60.0)
         return
 
-    def on_children_fin(self, kwargs, msg):
+    def on_children_fin(self, kwargs:dict, msg: GeneralMsg):
         return kwargs
 
-    def on_agent_wakeup(self, kwargs, msg):
+    def on_agent_wakeup(self, kwargs:dict, msg: GeneralMsg):
         # 1. get history if there is any
+        print_kwargs = copy.deepcopy(kwargs)
         history = kwargs.get("history", [])
         history_for_llm_request = []
         history_for_llm_request.extend(history)
@@ -83,7 +85,8 @@ class BasicQaAgent(Agent):
         # 5. make the request
         raw_output = self.llm_request.generate_llm_request(query=query, history=history_for_llm_request, sys_prompt=sys_prompt)
         self.agent_status = raw_output
-        kwargs.update(
+        print_kwargs["upstream_input"] = print_kwargs.pop("main_input")
+        print_kwargs.update(
             {
                 "query": query,
                 "history": history_for_llm_request,
@@ -91,12 +94,13 @@ class BasicQaAgent(Agent):
                 "raw_output": raw_output,
             }
         )
-        print(Panel(f"{print_msg_string(kwargs, msg)}"))
+        print(Panel(f"{print_msg_string(print_kwargs, msg)}"))
+        print(Panel(f"{print_msg_string(print_kwargs, msg, auto_clip=False)}"), file=open("llm.log", "a", encoding='utf-8'))
 
 
         # 6. send the request downstream
-        downstream_input = """Agent 「{AGENT_ID}」:\n{AGENT_SPEECH}"""
-        downstream_input = downstream_input.format(AGENT_ID=self.agent_id, AGENT_SPEECH=raw_output)
+        downstream_input = """Step {NUM_STEP}, Agent 「{AGENT_ID}」:\n{AGENT_SPEECH}"""
+        downstream_input = downstream_input.format(AGENT_ID=self.agent_id, AGENT_SPEECH=raw_output, NUM_STEP=msg.num_step)
         downstream = {"main_input": downstream_input, "history": downstream_history}
 
         # We do NOT append the downstream_input to the history,

@@ -5,24 +5,30 @@ from textwrap import dedent, indent
 auto_downstream = "auto_downstream"
 no_downstream = "no_downstream"
 
-def concrete_str(string):
-    res = string.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ').replace('  ', ' ')
+def concrete_str(string, clip_long=True):
+    res = string.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ').replace('  ', ' ') # .replace(']', '】').replace('[', '【')
+    if clip_long: res = len_limit(res)
     return res
 
 def len_limit(string):
     if len(string) > 350:
-        return string[:200] + f' [... (hide {len(string)-300} chars) ...] ' + string[-100:]
+        return string[:200] + f' 「... (hide {len(string)-300} chars) ...」 ' + string[-100:]
     return string
 
-def print_msg_string(kwargs, msg):
+def print_msg_string(kwargs, msg, auto_clip=True):
     def print_kwargs(kwargs):
         buf = "\n"
         keys = list(kwargs.keys())
-        if "history" in keys:
-            keys.remove("history")
-            keys = ["history"] + list(keys)
+        vip_order = ["sys_prompt", "history", "query", "raw_output"]
+        no_clip = ["raw_output"]
+        for k in (vip_order):
+            if k in keys:
+                keys.remove(k)
+                keys = list(keys) + [k]
+        #
         for k in keys:
             v = kwargs[k]
+            color = "red" if k in vip_order else "blue"
             if isinstance(v, list):
                 # add space before each
                 v_arr = v
@@ -30,22 +36,20 @@ def print_msg_string(kwargs, msg):
                 for index, item in enumerate(v_arr):
                     # print('****', item)
                     ccstr = concrete_str(str(item))
-                    v += f"[red]{index}:[/red]{ccstr}\n"
+                    v += f"[{color}]{index}:[/{color}]{ccstr}\n"
             if isinstance(v, str):
                 # add a new line before the string,
                 # then remove line break inside this string
                 if not str(v).startswith('\n'):
-                    v = '\n' + concrete_str(str(v))
+                    v = '\n' + concrete_str(str(v), clip_long=((auto_clip) and (k not in no_clip)))
             else:
                 # add a new line before the string,
                 # then remove line break inside this string
                 if not str(v).startswith('\n'):
                     v = '\n' + concrete_str(str(v))
-            if k == "raw_output":
-                v = indent(str(v), "    ")
-            else:
-                v = indent(len_limit(str(v)), "    ")
-            buf += f"[red]{k}[/red]: {v}\n\n"
+            # add indent
+            v = indent((str(v)), "    ")
+            buf += f"[{color}]{k}[/{color}]: {v}\n\n"
         return indent(buf, "    ")
 
     string_msg = dedent(
@@ -67,6 +71,8 @@ class GeneralMsg(BaseModel):
     command: str
         # enum "connect_to_matrix"
         # enum "agent_activate"
+
+    num_step: int = 0
 
     need_reply: bool = False
 

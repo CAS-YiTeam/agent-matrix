@@ -12,7 +12,6 @@ mmm.begin_event_loop_non_blocking()
     agent_kwargs={}
 )
 
-# 在母体中，创建一个校对智能体
 智能体_校对者 = 位面.create_agent(
     agent_id=f"校对者",
     agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
@@ -22,7 +21,6 @@ mmm.begin_event_loop_non_blocking()
     }
 )
 
-# 在母体中，创建一个润色智能体
 agent_kwargs = {""}
 智能体_润色者 = 位面.create_agent(
     agent_id=f"润色者",
@@ -33,7 +31,6 @@ agent_kwargs = {""}
     }
 )
 
-# 在母体中，创建一个中文专业化智能体
 智能体_去口语化 = 位面.create_agent(
     agent_id=f"去口语化",
     agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
@@ -43,7 +40,6 @@ agent_kwargs = {""}
     }
 )
 
-# 在母体中，创建一个中文专业化智能体
 智能体_汇总者 = 位面.create_agent(
     agent_id=f"汇总者",
     agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
