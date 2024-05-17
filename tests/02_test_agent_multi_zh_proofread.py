@@ -1,4 +1,4 @@
-import init_test # 修正测试路径到项目根目录
+import init_test # 修正测试路径到项目根目录，这样才能正确导入agent_matrix
 from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
 
 """
