@@ -1,3 +1,4 @@
+import init_test # 修正测试路径到项目根目录
 from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
 from textwrap import dedent
 def create_agent_arg_dict(**kwargs): return kwargs
@@ -10,8 +11,7 @@ def create_agent_arg_dict(**kwargs): return kwargs
    └── concluder
 """
 
-PROMPT_DO_IT = "Do your job according to the instructions."
-PROMPT_DO_IT_ZH = "根据提示完成任务。"
+PROMPT_DO_IT_ZH = "根据上文的提示并完成任务。"  # PROMPT_DO_IT = "Do your job according to the instructions."
 
 mmm = MasterMindMatrix(host='localhost', port=10101, dedicated_server=False)
 mmm.begin_event_loop_non_blocking()
@@ -56,7 +56,7 @@ children = pro_zh_translator.create_child_agent_sequential(
                                             改正方法：替换成“本文”，“本节”
                                         """),
                 "need_history": False,
-                "query_construction": "{MAIN_INPUT_PLACEHOLDER}\n" + PROMPT_DO_IT_ZH
+                "query_construction": "按要求修正以下翻译：\n\n{MAIN_INPUT_PLACEHOLDER}"
             }
         ),
         create_agent_arg_dict(
