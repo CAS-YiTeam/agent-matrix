@@ -101,7 +101,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                     sys.executable,
                     agent_launcher_abspath,
                     "--agent-id", agent_id,
-                    "--agent-class", agent_class,
+                    "--agent-class", base64.b64encode(pickle.dumps(agent_class)),
                     "--matrix-host", str(host),
                     "--matrix-port", str(port),
                     "--agent-kwargs", base64.b64encode(pickle.dumps(agent_kwargs)),

@@ -2,7 +2,7 @@ import time
 import re
 from loguru import logger
 from agent_matrix.agent.agent import Agent
-from shared.config_loader import get_conf as agent_matrix_get_conf
+from agent_matrix.shared.config_loader import get_conf as agent_matrix_get_conf
 logger.level("LLM", no=23)
 logger.add("llm.log", level="LLM", rotation="10 MB", retention="10 days")
 
