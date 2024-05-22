@@ -10,11 +10,12 @@ from loguru import logger
 from agent_matrix.agent.agent_proxy import AgentProxy
 from agent_matrix.matrix.matrix_websocket import MasterMindWebSocketServer
 from agent_matrix.shared.serialize import clean_up_unpickleble
+from agent_matrix.shared.config_loader import get_conf as agent_matrix_get_conf
 from rich.panel import Panel
 from rich.text import Text
 from rich import print
 from rich.columns import Columns
-
+PANEL_WIDTH = agent_matrix_get_conf("PANEL_WIDTH")
 
 class MasterMindMatrix(MasterMindWebSocketServer):
 
@@ -121,7 +122,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                 logger.info(f"agent {agent_id} connected to matrix")
                 self.build_tree(target="")
                 # Render the tree
-                print(Panel(Columns([Text("New Agent Up"), self.agent_tree])))
+                print(Panel(Columns([Text("New Agent Up"), self.agent_tree]), width=PANEL_WIDTH))
                 return agent_proxy
             else:
                 logger.error(f"agent {agent_id} failed to connect to matrix within the timeout limit")

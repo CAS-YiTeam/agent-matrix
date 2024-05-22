@@ -4,11 +4,13 @@ import threading
 from loguru import logger
 from fastapi import WebSocket
 from agent_matrix.agent.interaction import InteractionManager
-from agent_matrix.msg.general_msg import GeneralMsg, auto_downstream, no_downstream
+from agent_matrix.msg.general_msg import GeneralMsg, SpecialDownstreamSet, SpecialDownstream
 from typing import List
 from typing_extensions import Self
 from rich import print
 from rich.panel import Panel
+from agent_matrix.shared.config_loader import get_conf as agent_matrix_get_conf
+PANEL_WIDTH = agent_matrix_get_conf("PANEL_WIDTH")
 
 
 class BaseProxy(object):
@@ -148,9 +150,9 @@ class BaseProxy(object):
         downstream_agent_id_arr = list(self.interaction.get_downstream())
         downstream_override = msg.get("downstream_override", None)
         if downstream_override:
-            if downstream_override == auto_downstream:
+            if downstream_override == SpecialDownstreamSet.auto_downstream:
                 self._wakeup_downstream_agent_regular(msg)
-            elif downstream_override == no_downstream:
+            elif downstream_override == SpecialDownstreamSet.return_to_parent:
                 self._wakeup_parent(msg)
             else:
                 self._wakeup_brother_agent(msg, downstream_override)
@@ -165,7 +167,7 @@ class BaseProxy(object):
         msg.src = self.agent_id
         msg.dst = selected_child.agent_id
         # print(Panel(f"Agent 「{msg.src}」 --> Child ↓↓ 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
-        print(Panel(self.matrix.build_tree(target=msg.dst)))
+        print(Panel(self.matrix.build_tree(target=msg.dst), width=PANEL_WIDTH))
         selected_child.___on_agent_wakeup___(msg)
         return
 
@@ -179,7 +181,7 @@ class BaseProxy(object):
         msg.dst = self.parent.agent_id
         msg.level_shift = '↑'
         # print(Panel(f"Agent 「{msg.src}」 --> Parent ↑↑ 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
-        print(Panel(self.matrix.build_tree(target=msg.dst)))
+        print(Panel(self.matrix.build_tree(target=msg.dst), width=PANEL_WIDTH))
         self.parent.___on_agent_wakeup___(msg)
         return
 
@@ -191,16 +193,16 @@ class BaseProxy(object):
             msg.dst = downstream_agent_id
             msg.level_shift = '→'
             # print(Panel(f"Agent 「{msg.src}」 --> 「{msg.dst}」\n Delivering Message: \n {msg.print_string()}"))
-            print(Panel(self.matrix.build_tree(target=msg.dst)))
+            print(Panel(self.matrix.build_tree(target=msg.dst), width=PANEL_WIDTH))
             downstream_agent.___on_agent_wakeup___(msg)
         return
 
     def _terminate_exe(self, msg):
         msg.src = self.agent_id
         msg.level_shift = '→'
-        msg.dst = 'No More Downstream Agents!'
-        print(Panel(f"Agent 「{msg.src}」 --> 「{msg.dst}」\n Final Message: \n {msg.print_string()}"))
-        print(Panel(self.matrix.build_tree(target=msg.dst)))
+        msg.dst = 'No More SpecialDownstream Agents!'
+        print(Panel(f"Agent 「{msg.src}」 --> 「{msg.dst}」\n Final Message: \n {msg.print_string()}", width=PANEL_WIDTH))
+        print(Panel(self.matrix.build_tree(target=msg.dst), width=PANEL_WIDTH))
         return
 
     def _wakeup_downstream_agent_regular(self, msg):
@@ -331,7 +333,25 @@ class AgentProxy(BaseProxy):
 
     # @user_fn
     def create_downstream_agent(self, *args, **kwargs) -> Self:
+        import copy
+        # search downstream agents in kwargs
+        if kwargs.get("agent_kwargs", {}).get("downstream_options", None) is not None:
+            downstream_options = kwargs["agent_kwargs"]["downstream_options"]
+        elif kwargs.get("agent_kwargs", {}).get("downstream_options", None) is not None:
+            downstream_options = kwargs["agent_kwargs"]["downstream_agents"]
+        else:
+            downstream_options = []
+        downstream_options = copy.copy(downstream_options)
+
+        # create new agent
         new_agent = self.parent.create_child_agent(*args, **kwargs)
+
+        # create edge to downstream agents
+        for d in downstream_options:
+            if not isinstance(d, SpecialDownstream):
+                new_agent.create_edge_to(d)
+
+        # create edge to new agent
         self.create_edge_to(new_agent.agent_id)
         return new_agent
 
@@ -369,7 +389,7 @@ class AgentProxy(BaseProxy):
         if isinstance(dst_agent_id, list):
             for d in dst_agent_id:
                 if not isinstance(d, str): d = d.agent_id
-                if d != auto_downstream: self.create_edge_to(d)
+                # if d != auto_downstream: self.create_edge_to(d)
             return
         if isinstance(dst_agent_id, self.__class__):
             dst_agent_id = dst_agent_id.agent_id
@@ -405,7 +425,7 @@ class AgentProxy(BaseProxy):
         msg.src = 'user'
         msg.dst = self.agent_id
         # print(Panel(f"Agent 「{self.agent_id}」is waking up! \n Delivering Message: \n {msg.print_string()}"))
-        print(Panel(self.matrix.build_tree(target=msg.dst)))
+        print(Panel(self.matrix.build_tree(target=msg.dst), width=PANEL_WIDTH))
         self.___on_agent_wakeup___(msg)
 
     # @user_fn

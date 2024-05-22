@@ -2,8 +2,16 @@ from datetime import datetime
 from typing import List, Optional, Any
 from pydantic import BaseModel
 from textwrap import dedent, indent
-auto_downstream = "auto_downstream"
-no_downstream = "no_downstream"
+
+class SpecialDownstream:
+    def __init__(self, downstream) -> None:
+        self.downstream = downstream
+    def __eq__(self, __value: object) -> bool:
+        return __value == self.downstream
+
+class SpecialDownstreamSet:
+    auto_downstream = SpecialDownstream("auto_downstream")
+    return_to_parent = no_downstream = SpecialDownstream("return_to_parent")
 
 def concrete_str(string, clip_long=True):
     res = string.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ').replace('  ', ' ') # .replace(']', '】').replace('[', '【')

@@ -7,9 +7,10 @@ from agent_matrix.shared.cache_fn_io import file_cache
 from agent_matrix.msg.general_msg import print_msg_string, GeneralMsg
 from rich.panel import Panel
 from rich import print
-logger.level("LLM", no=23)
+try: logger.level("LLM", no=23)
+except: pass
 logger.add("llm.log", level="LLM", rotation="10 MB", retention="10 days")
-
+PANEL_WIDTH = agent_matrix_get_conf("PANEL_WIDTH")
 
 
 class RequestLlmSubClass():
@@ -118,8 +119,8 @@ class BasicQaAgent(Agent):
                 "raw_output": raw_output,
             }
         )
-        print(Panel(f"{print_msg_string(print_kwargs, msg)}"))
-        print(Panel(f"{print_msg_string(print_kwargs, msg, auto_clip=False)}"), file=open("llm.log", "a", encoding='utf-8'))
+        print(Panel(f"{print_msg_string(print_kwargs, msg)}", width=PANEL_WIDTH))
+        print(Panel(f"{print_msg_string(print_kwargs, msg, auto_clip=False)}", width=PANEL_WIDTH), file=open("llm.log", "a", encoding='utf-8'))
 
         # 6. send the request downstream
         if len(downstream_history) == 0 or (main_input not in downstream_history[-1]):
