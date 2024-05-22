@@ -1,7 +1,7 @@
 from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
 from agent_matrix.msg.general_msg import SpecialDownstreamSet
-from agent_matrix.agent.ext_agent import ExtractionAgent
-from agent_matrix.agent.qa_agent import BasicQaAgent
+from agent_matrix.agent.agent_extraction import ExtractionAgent
+from agent_matrix.agent.agent_basic_qa import BasicQaAgent
 from textwrap import dedent
 
 PROMPT_DO_IT = "Do your job according to the instructions."
@@ -100,9 +100,9 @@ def condition_callback(main_input, downstream_options):
     else:
         return downstream_options[1]
 
-switch_agent = meta_expert_next.create_downstream_agent(
-    agent_id=f"switch_agent",
-    agent_class="agent_matrix.agent.switch_agent->SwitchAgent",
+agent_switch = meta_expert_next.create_downstream_agent(
+    agent_id=f"agent_switch",
+    agent_class="agent_matrix.agent.agent_switch->SwitchAgent",
     agent_kwargs={
         "condition_callback": condition_callback,
         "downstream_options": [

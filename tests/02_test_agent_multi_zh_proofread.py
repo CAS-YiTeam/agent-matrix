@@ -1,6 +1,6 @@
 import init_test # 修正测试路径到项目根目录，这样才能正确导入agent_matrix
 from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
-from agent_matrix.agent.qa_agent import BasicQaAgent
+from agent_matrix.agent.agent_basic_qa import BasicQaAgent
 
 """
 原始文本 -> 校对者 -> 润色者 -> 去口语化 -> 汇总者
