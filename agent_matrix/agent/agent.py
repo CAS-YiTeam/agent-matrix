@@ -21,9 +21,9 @@ class AgentProperties(object):
         self._activation_event = Event()
         self.activate = False
 
-    @property
-    def agent_direct_children(self):
-        return self.get_property_from_proxy("direct_children")
+    # @property
+    # def agent_direct_children(self):
+    #     return self.get_property_from_proxy("direct_children")
 
     @property
     def agent_status(self):

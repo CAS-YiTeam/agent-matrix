@@ -63,16 +63,21 @@ class GroupChatAgent(BasicQaAgent):
 
     def get_next_speaker(self, history_for_llm_request):
         query = dedent(
-        """
-            You are in a role play game. The following roles are available:
-            {roles}.
-            Read the following conversation.
-            Then select the next role from {agentlist} to play. Only return the role.
-        """
+            """
+                You are in a role play game. The following roles are available:
+                {roles}.
+                Read the following conversation,
+                plan and select the next role from {agentlist} to play,
+                and explain why you choose this role.
+
+                Note:
+                - You should wrap the SELECTED role name in dollar quotes, e.g. "I decide $the_role_name$ should be the next role to play".
+                - When the initial goal is done, you should return $terminate_conversation$ (in dollar quotes) to end the conversation.
+            """
         )
-        agent_id = self.agent_direct_children
-        agent_description = self.get_children_description()
-        query.format(roles=agent_description, agentlist=agent_id)
+        direct_children_array = self.get_property_from_proxy("direct_children")
+        agent_id_array = [agent["agent_id"] for agent in direct_children_array]
+        query = query.format(roles=agent_id_array, agentlist=agent_id_array+["terminate_conversation"])
         # 5. make the request
         if self.mode == 'history_query':
             raw_output = self.llm_request.generate_llm_request(
@@ -87,9 +92,28 @@ class GroupChatAgent(BasicQaAgent):
                 history=[],
                 sys_prompt="",
                 use_debug_cache=self.use_debug_cache)
-        valid, next_speaker, terminate = self.parse_speaker_maunally(raw_output, self.agent_list)
-        return valid, next_speaker, terminate
+        valid, next_speaker, terminate = self.parse_speaker_maunally(raw_output, agent_id_array)
+        return valid, next_speaker, terminate   # I'm here, let continue tomorrow !!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    def parse_speaker_maunally(self, raw_output, agent_list):
+        if "$terminate_conversation$" in raw_output:
+            return True, None, True
+
+        # optimal case: llm use dollar quotes
+        if "$" in raw_output:
+            # use regex to extract
+            import re
+            match = re.search(r'\$(.*?)\$', raw_output)
+            if match:
+                next_speaker = match.group(1)
+                if next_speaker in agent_list:
+                    return True, next_speaker, False
+                else:
+                    return False, None, False
+            else:
+                return False, None, False
+        else:
+            return False, None, False
 
     def on_agent_wakeup(self, kwargs:dict, msg: GeneralMsg):
         history = kwargs.get("history", [])
