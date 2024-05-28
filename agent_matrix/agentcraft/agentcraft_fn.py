@@ -1,5 +1,6 @@
 from agent_matrix.msg.general_msg import GeneralMsg
 from agent_matrix.msg.ui_msg import UserInterfaceMsg
+from agent_matrix.msg.agent_msg import generate_agent_dict
 from agent_matrix.agentcraft.agentcraft_proxy import AgentCraftProxy
 import asyncio
 import json
@@ -32,19 +33,6 @@ class PythonMethod_AgentcraftHandler:
     def generate_agent_summary(self):
         agent_summary_array = []
         for agent in self.get_all_agents_in_matrix():
-            agent_summary_array.append({
-                "valid": True,
-                "agent_id":         agent.agent_id,
-                "agent_location":   {
-                    "X": agent.agent_location[0],
-                    "Y": agent.agent_location[1],
-                    "Z": agent.agent_location[2],
-                },
-                "agent_ue_class":   agent.agent_ue_class,
-                "agent_status":     agent.agent_status,
-                "agent_animation":  agent.agent_animation,
-                "agent_activity":   agent.agent_activity,
-                "agent_request":    agent.agent_request,
-            })
+            agent_summary_array.append(generate_agent_dict(agent))
 
         return {"agent_summary_array": agent_summary_array}

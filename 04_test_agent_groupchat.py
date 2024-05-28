@@ -48,7 +48,7 @@ analyst = group_chat_master.create_child_agent(
 group_chat_master.activate_all_children()
 
 group_chat_master.wakeup(r"""
-Get latest news, determine how these news will affect the stock market (e-car related), and make a plan for the next week.
+Get latest news about Middle East, determine how these news will affect the stock market (e-car related), and make a plan for the next week.
 """)
 
 input('主线程进入休眠状态，让智能体们完成任务')

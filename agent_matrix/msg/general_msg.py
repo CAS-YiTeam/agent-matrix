@@ -86,6 +86,10 @@ class GeneralMsg(BaseModel):
 
     downstream_override: str = None
 
+    children_select_override: str = None
+
+    call_children_again: bool = False
+
     kwargs: dict = {}
 
     level_shift: str = '→' # from  '↑', '↓', '→'

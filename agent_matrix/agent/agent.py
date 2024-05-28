@@ -22,6 +22,10 @@ class AgentProperties(object):
         self.activate = False
 
     @property
+    def agent_direct_children(self):
+        return self.get_property_from_proxy("direct_children")
+
+    @property
     def agent_status(self):
         if not hasattr(self, "_agent_status"):
             self._agent_status = agent_status_default = ""
@@ -74,14 +78,49 @@ class AgentProperties(object):
         self._send_msg(msg)
         return property_value
 
+    def get_property_from_proxy(self, property_name):
+        msg = GeneralMsg(src=self.agent_id, dst=self.proxy_id, command="on_request_status", kwargs={"property_name": property_name})
+        return self._send_msg_and_wait_reply(msg)
+
+
+    # def send_msg_and_wait_reply(self, wait_command:str, msg: GeneralMsg):
+    #     """ Send msg, then keep waiting until receiving expected reply.
+    #     """
+    #     self.send_to_real_agent(msg)
+    #     self.temp_event = threading.Event()
+    #     self.temp_event.return_value = None
+    #     self.register_trigger(wait_command, self.temp_event)
+    #     self.temp_event.wait()
+    #     return self.temp_event.return_value
+
 
 class AgentCommunication():
+
+    def _send_msg_and_wait_reply(self, msg):
+        import uuid
+        future_id = uuid.uuid4().hex
+        msg.kwargs.update({"future_id": future_id})
+        self._websocket_connection.temp_event_dict[future_id] = threading.Event()
+        self._websocket_connection.temp_event_dict[future_id].return_value = None
+        self._send_msg(msg)
+        self._websocket_connection.temp_event_dict[future_id].wait()
+        result = self._websocket_connection.temp_event_dict[future_id].return_value
+        self._websocket_connection.temp_event_dict.pop(future_id)
+        return result
+
+    def _on_request_status_reply(self, msg):
+        future_id = msg.kwargs["future_id"]
+        property_value = msg.kwargs["property_value"]
+        self._websocket_connection.temp_event_dict[future_id].return_value = property_value
+        self._websocket_connection.temp_event_dict[future_id].set()
+        return
 
     def _connect_to_matrix(self):
         # do not call this function directly
         host = self.matrix_host
         port = str(self.matrix_port)
         self._websocket_connection = connect(f"ws://{host}:{port}/ws_agent")
+        self._websocket_connection.temp_event_dict = {}
         msg = GeneralMsg(src=self.agent_id, dst="matrix", command="connect_to_matrix", kwargs={"agent_id": self.agent_id})
         self._send_msg(msg)
 
@@ -108,34 +147,39 @@ class AgentCommunication():
                 msg.need_reply = False
                 self._send_msg(msg)
 
+    def wakeup_in_new_thread(self, msg):
+        # deal with the message from upstream
+        msg.num_step += 1
+        if msg.level_shift == '↑':
+            # Case 1:
+            # - This agent must be a parent with at leat one child agent,
+            #   and all its children have finished their tasks.
+            #   It is time that this parent exam all the work done by its children
+            #   and decide what to do next.
+            downstream = self.on_children_fin(msg.kwargs, msg)
+        else:
+            # Case 2:
+            # - If this agent is a parent (with at least one child agent),
+            #   on_agent_wakeup will be called, and its children will handle more work afterwards.
+            # - If this agent has no children,
+            #   on_agent_wakeup will be called.
+            downstream = self.on_agent_wakeup(msg.kwargs, msg)
+
+        # deliver message to downstream
+        # (don't worry, agent proxy will deal with it,
+        # e.g. chosing the right downstream agent)
+        self.on_agent_fin(downstream, msg)
+
     def _handle_command(self, msg: GeneralMsg):
         # do not call this function directly
         if msg.command == "activate_agent":
             self.activate_agent()
         elif msg.command == "deactivate_agent":
             self.deactivate_agent()
+        elif msg.command == "on_request_status.re":
+            self._on_request_status_reply(msg)
         elif msg.command == "on_agent_wakeup":
-            # deal with the message from upstream
-            msg.num_step += 1
-            if msg.level_shift == '↑':
-                # Case 2:
-                # - This agent must be a parent with at leat one child agent,
-                #   and all its children have finished their tasks.
-                #   It is time that this parent exam all the work done by its children
-                #   and decide what to do next.
-                downstream = self.on_children_fin(msg.kwargs, msg)
-            else:
-                # Case 1:
-                # - If this agent is a parent (with at least one child agent),
-                #   on_agent_wakeup will be called, and its children will handle more work afterwards.
-                # - If this agent has no children,
-                #   on_agent_wakeup will be called.
-                downstream = self.on_agent_wakeup(msg.kwargs, msg)
-
-            # deliver message to downstream
-            # (don't worry, agent proxy will deal with it,
-            # e.g. chosing the right downstream agent)
-            self.on_agent_fin(downstream, msg)
+            threading.Thread(target=self.wakeup_in_new_thread, args=(msg,)).start()
         else:
             raise NotImplementedError
 
