@@ -1,5 +1,7 @@
 from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
-from agent_matrix.msg.general_msg import auto_downstream
+from agent_matrix.msg.general_msg import SpecialDownstreamSet
+from agent_matrix.agent.agent_extraction import ExtractionAgent
+from agent_matrix.agent.agent_basic_qa import BasicQaAgent
 from textwrap import dedent
 
 PROMPT_DO_IT = "Do your job according to the instructions."
@@ -59,48 +61,56 @@ Additionally, please review the final solution yourself or have another expert(s
 
 meta_expert = mmm.create_child_agent(
     agent_id=f"meta_expert",
-    agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
+    agent_class=BasicQaAgent,
     agent_kwargs={
+        "use_debug_cache": False,
         "sys_prompt": meta_expert_long_system_prompt,
         "query_construction": first_move_prompt,
     },
 )
 extractor = meta_expert.create_downstream_agent(
     agent_id=f"extractor",
-    agent_class="agent_matrix.agent.ext_agent->ExtractionAgent",
+    agent_class=ExtractionAgent,
     agent_kwargs={
         "extraction_wrap": ['"""', '"""'],
     },
 )
 expert = extractor.create_downstream_agent(
     agent_id=f"expert",
-    agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
+    agent_class=BasicQaAgent,
     agent_kwargs={
+        "use_debug_cache": False,
         "need_history": False,
         "query_construction": "{MAIN_INPUT_PLACEHOLDER}"
     },
 )
-meta_expert_2 = expert.create_downstream_agent(
-    agent_id=f"meta_expert_2",
-    agent_class="agent_matrix.agent.qa_agent->BasicQaAgent",
+meta_expert_next = expert.create_downstream_agent(
+    agent_id=f"meta_expert_next",
+    agent_class=BasicQaAgent,
     agent_kwargs={
+        "use_debug_cache": False,
         "sys_prompt": meta_expert_long_system_prompt,
         "query_construction": next_more_prompt,
     },
 )
 
 def condition_callback(main_input, downstream_options):
-    return downstream_options[0]
+    if "FINAL ANSWER" not in main_input:
+        return downstream_options[0]
+    else:
+        return downstream_options[1]
 
-switch_agent = meta_expert_2.create_downstream_agent(
-    agent_id=f"switch_agent",
-    agent_class="agent_matrix.agent.switch_agent->SwitchAgent",
+agent_switch = meta_expert_next.create_downstream_agent(
+    agent_id=f"agent_switch",
+    agent_class="agent_matrix.agent.agent_switch->SwitchAgent",
     agent_kwargs={
         "condition_callback": condition_callback,
-        "downstream_options": [expert, auto_downstream],
+        "downstream_options": [
+            extractor,
+            SpecialDownstreamSet.return_to_parent
+        ],    # create_edge_to ([expert, auto_downstream])
     },
 )
-switch_agent.create_edge_to([expert, auto_downstream])
 
 
 
