@@ -62,6 +62,13 @@ class BaseProxy(object):
         self.allow_level_up = True
         return
 
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # 清理资源或处理异常
+        pass
+
     def update_connection_info(self,
                                websocket: WebSocket = None,
                                client_id: str = None,
