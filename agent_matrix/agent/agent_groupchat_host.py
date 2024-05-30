@@ -64,15 +64,15 @@ class GroupChatAgent(BasicQaAgent):
 
         query = dedent(
             """
-                You are in a role play game. The following roles are available:
-                {roles}.
+                You are in a role play game, and you are the leader to arrange the order of speakers.
+                The following speakers are available: {roles}.
                 Read the following conversation,
-                plan and select the next role from {agentlist} to play,
-                and explain why you choose this role.
+                plan and select the next speaker from {agentlist},
+                and explain why you choose this speaker.
 
                 Note:
-                - You should wrap the SELECTED role name in dollar quotes, e.g. "I decide $the_role_name$ should be the next role to play".
-                - When the initial goal is done, you should return $terminate_conversation$ (in dollar quotes) to end the conversation.
+                You should wrap the SELECTED speaker name in dollar quotes, e.g. "I decide $the_speaker_name$ should be the next speaker to play".
+                When the initial goal is done, you should return $terminate_conversation$ (in dollar quotes) to end the conversation.
             """
         )
         def parse_speaker_maunally(raw_output, agent_list):
@@ -99,14 +99,8 @@ class GroupChatAgent(BasicQaAgent):
         agent_id_array = [agent["agent_id"] for agent in direct_children_array]
         query = query.format(roles=agent_id_array, agentlist=agent_id_array+["terminate_conversation"])
         # 5. make the request
-        if self.mode == 'history_query':
-            raw_output = self.llm_request.generate_llm_request(
-                query=query,
-                history=history_for_llm_request,
-                sys_prompt="",
-                use_debug_cache=self.use_debug_cache)
-        elif self.mode == 'only_query':
-            join_query_and_history = query + "\n\n" + "\n".join(history_for_llm_request)
+        if self.mode == 'only_query':
+            join_query_and_history = query + "\nPrevious conversation:\n" + "\n".join(history_for_llm_request)
             raw_output = self.llm_request.generate_llm_request(
                 query=join_query_and_history,
                 history=[],
