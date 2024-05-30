@@ -200,6 +200,11 @@ class AgentBasic(AgentProperties, AgentCommunication):
         # for switch agent, add downstream_override
         if downstream.get("downstream_override", None):
             msg.downstream_override = downstream["downstream_override"]
+        # for groupchat agent, add children_select_override
+        if downstream.get("children_select_override", None):
+            msg.children_select_override = downstream["children_select_override"]
+        if downstream.get("call_children_again", None):
+            msg.call_children_again = downstream["call_children_again"]
         # keep level shift unchanged
         msg.level_shift = msg.level_shift
         self._send_msg(msg)
