@@ -11,6 +11,7 @@ try: logger.level("LLM", no=23)
 except: pass
 logger.add("llm.log", level="LLM", rotation="10 MB", retention="10 days")
 PANEL_WIDTH = agent_matrix_get_conf("PANEL_WIDTH")
+DEBUG_MOD = agent_matrix_get_conf("DEBUG_MOD")
 
 # Prompt forked from AutoGen
 select_speaker_prompt_template =  """
@@ -135,6 +136,8 @@ class GroupChatAgent(BasicQaAgent):
                 kwargs.update({'children_select_override': next_speaker})
                 kwargs.update({'call_children_again': True})
                 return kwargs
+
+        if DEBUG_MOD: input('next_speaker\t', next_speaker, 'Press Enter to continue...')
 
         # run fail
         kwargs.pop("children_select_override", None)

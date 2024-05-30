@@ -11,6 +11,7 @@ try: logger.level("LLM", no=23)
 except: pass
 logger.add("llm.log", level="LLM", rotation="10 MB", retention="10 days")
 PANEL_WIDTH = agent_matrix_get_conf("PANEL_WIDTH")
+DEBUG_MOD = agent_matrix_get_conf("DEBUG_MOD")
 
 class BasicQaAgent(Agent):
 
@@ -93,6 +94,7 @@ class BasicQaAgent(Agent):
         downstream_history.append(downstream_input)
         downstream = {"main_input": raw_output, "history": downstream_history}
 
+        if DEBUG_MOD: input('Press Enter to continue...')
         # return
         return downstream
 

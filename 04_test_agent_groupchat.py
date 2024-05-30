@@ -52,4 +52,6 @@ Objective:
     Get latest news about Middle East, determine how these news will affect the stock market (e-car related), and make a plan for the next week.
 """)
 
+import time
+time.sleep(6000)
 input('主线程进入休眠状态，让智能体们完成任务')

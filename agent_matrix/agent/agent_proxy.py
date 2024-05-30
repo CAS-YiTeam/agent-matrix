@@ -300,6 +300,7 @@ class AgentProxyLogicFlow(BaseProxy):
         if msg.call_children_again:
             msg.call_children_again = False
             self.wakeup_children(msg)
+            return
 
         if msg.level_shift == '↑':
             self.wakeup_downstream_agent(msg)
