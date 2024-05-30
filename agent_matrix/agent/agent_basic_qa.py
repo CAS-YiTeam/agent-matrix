@@ -89,8 +89,10 @@ class BasicQaAgent(Agent):
         # 6. send the request downstream
         if len(downstream_history) == 0 or (main_input not in downstream_history[-1]):
             downstream_history.append(main_input)
-        downstream_input = """Step {NUM_STEP}, Agent 「{AGENT_ID}」:\n{AGENT_SPEECH}"""
-        downstream_input = downstream_input.format(AGENT_ID=self.agent_id, AGENT_SPEECH=raw_output, NUM_STEP=msg.num_step)
+        from agent_matrix.shared.conversation import downstream_input_template, generate_step
+        # downstream_input_template = """「Step {NUM_STEP}, Agent {AGENT_ID}」:\n{AGENT_SPEECH}"""
+        num_step = generate_step(downstream_history)
+        downstream_input = downstream_input_template.format(AGENT_ID=self.agent_id, AGENT_SPEECH=raw_output, NUM_STEP=num_step)
         downstream_history.append(downstream_input)
         downstream = {"main_input": raw_output, "history": downstream_history}
 
