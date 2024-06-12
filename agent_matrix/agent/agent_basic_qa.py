@@ -26,6 +26,7 @@ class BasicQaAgent(Agent):
         self.use_debug_cache = kwargs.get("use_debug_cache", False)
         self.query_construction = kwargs.get("query_construction", "Do your job according to the instructions.") # default: tell lm to do its job according to the sys_prompt
         self.llm_request = RequestLlmSubClass(kwargs.get("temperature", 0.5))
+        self.finish_callback = kwargs.get("finish_callback", None)
         self.mode = 'history_query'
 
     def agent_task_cycle(self):
@@ -96,6 +97,8 @@ class BasicQaAgent(Agent):
         downstream_history.append(downstream_input)
         downstream = {"main_input": raw_output, "history": downstream_history}
 
+        if self.finish_callback is not None:
+            self.finish_callback(downstream)
         if DEBUG_MOD: input('Press Enter to continue...')
         # return
         return downstream

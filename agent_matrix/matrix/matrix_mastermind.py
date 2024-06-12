@@ -50,6 +50,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
     def begin_event_loop_non_blocking(self):
         logger.info("begin event loop in new thread (non-blocking)")
         threading.Thread(target=self.asyncio_event_loop, daemon=True).start()
+        return self
 
     def register_parent(self, parent: AgentProxy, agent_proxy: AgentProxy):
         # TODO
