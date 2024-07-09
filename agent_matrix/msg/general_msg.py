@@ -70,6 +70,9 @@ def print_msg_string(kwargs, msg, auto_clip=True):
 
 
 class GeneralMsg(BaseModel):
+    flow_uid: str = None
+        # the initial uid of the workflow, used to track the whole process
+
     src: str
         # source agent id
 

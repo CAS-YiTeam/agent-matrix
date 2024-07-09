@@ -1,6 +1,7 @@
 import pickle
 import asyncio
 import threading
+import uuid
 from loguru import logger
 from fastapi import WebSocket
 from agent_matrix.agent.interaction import InteractionManager
@@ -208,12 +209,13 @@ class AgentProxyLogicFlow(BaseProxy):
                 self._wakeup_brother_agent(msg, downstream_agent_id)
         return
 
-    def _terminate_exe(self, msg):
+    def _terminate_exe(self, msg:GeneralMsg):
         msg.src = self.agent_id
         msg.level_shift = '→'
-        msg.dst = 'No More SpecialDownstream Agents!'
+        msg.dst = 'No More Downstream Agents!'
         print(Panel(f"Agent 「{msg.src}」 --> 「{msg.dst}」\n Final Message: \n {msg.print_string()}", width=PANEL_WIDTH))
         print(Panel(self.matrix.build_tree(target=msg.dst), width=PANEL_WIDTH))
+        self.matrix.terminate_event(msg.flow_uid, msg)
         return
 
     def wakeup_children(self, msg):
@@ -460,7 +462,9 @@ class AgentProxy(AgentProxyLogicFlow):
 
     # @user_fn
     def wakeup(self, main_input):
+        flow_uid = uuid.uuid4().hex
         msg = GeneralMsg(
+            flow_uid=flow_uid,
             src=self.proxy_id,
             dst=self.agent_id,
             command="on_agent_wakeup",
@@ -469,11 +473,13 @@ class AgentProxy(AgentProxyLogicFlow):
                 "history": [main_input,],
             },
         )
+        wait_result_handler = self.matrix.create_event(flow_uid)
         msg.src = 'user'
         msg.dst = self.agent_id
         # print(Panel(f"Agent 「{self.agent_id}」is waking up! \n Delivering Message: \n {msg.print_string()}"))
         print(Panel(self.matrix.build_tree(target=msg.dst), width=PANEL_WIDTH))
         self.___on_agent_wakeup___(msg)
+        return wait_result_handler
 
     # @user_fn
     def test_agent(self, main_input):

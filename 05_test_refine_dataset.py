@@ -51,23 +51,20 @@ emoji_reviser = mmm.create_child_agent(
 emoji_reviser.activate_all_children()
 
 
-
-
 ############ 处理数据集（用线程池并行处理） ############
 max_workers = 2
 def process_samples(sample):
     build_main_input = 'Question is:\n\n' + sample['input'] + '\n\n---\n\n\Original answer is:\n\n' + sample['target']
-    print(build_main_input)
-    emoji_reviser.wakeup(build_main_input)
+    # print(build_main_input)
+    future = emoji_reviser.wakeup(build_main_input)
+    res = future.wait_and_get_result()
+
 from concurrent.futures import ThreadPoolExecutor
 executor = ThreadPoolExecutor(max_workers=max_workers)
 futures = []
 for i, sample in enumerate(dataset['train']):
     if sample['kind'] != 'OpenQA': continue
     futures.append(executor.submit(process_samples, sample))
-    while executor._work_queue.qsize() > 10:
-        print(executor._work_queue.qsize())
-        time.sleep(1)
 
 while True:
     worker_done = [h.done() for h in futures]
@@ -75,8 +72,4 @@ while True:
         executor.shutdown()
         break
 
-
 time.sleep(3600) # 已经不需要再做什么了，让主控进入休眠状态，让智能体们完成任务
-
-
-## 不行！需要写一个wake up的终结回调方法！

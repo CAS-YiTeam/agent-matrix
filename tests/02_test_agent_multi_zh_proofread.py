@@ -30,7 +30,7 @@ agent_kwargs = {""}
     agent_class=BasicQaAgent,
     agent_kwargs={
         "use_debug_cache": True,
-        "sys_prompt": "你你是一个中文写作专家，任务是润色文本。你只需要做好自己的分内工作即可。使用中文。",
+        "sys_prompt": "你是一个中文写作专家，任务是润色文本。你只需要做好自己的分内工作即可。使用中文。",
         "query_construction": "Do your job according to the instructions, consider the results from other agents if there are any."
     }
 )

@@ -17,13 +17,34 @@ from typing import List
 from agent_matrix.matrix.matrix_websocket_agent import PythonMethod_AsyncConnectionMaintainer
 from agent_matrix.matrix.matrix_websocket_agentcraft import PythonMethod_AsyncConnectionMaintainer_AgentcraftInterface
 
+class FutureEvent(threading.Event):
+    def __init__(self) -> None:
+        super().__init__()
+        self.return_value = None
+
+    def terminate(self, return_value):
+        self.return_value = return_value
+        self.set()
+
+    def wait_and_get_result(self):
+        self.wait()
+        return self.return_value
 
 class MasterMindWebSocketServer(PythonMethod_AsyncConnectionMaintainer, PythonMethod_AsyncConnectionMaintainer_AgentcraftInterface):
 
     def __init__(self) -> None:
         self.websocket_connections = {}
         self.agentcraft_interface_websocket_connections = {}
+        self._event_hub = {}
         pass
+
+    def create_event(self, event_name: str):
+        self._event_hub[event_name] = FutureEvent()
+        return self._event_hub[event_name]
+
+    def terminate_event(self, event_name: str, msg:GeneralMsg):
+        self._event_hub[event_name].terminate(return_value = msg)
+        return
 
     async def long_task_01_wait_incoming_connection(self):
         # task 1 wait incoming agent connection

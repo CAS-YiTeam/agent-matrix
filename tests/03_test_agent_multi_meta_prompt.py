@@ -1,3 +1,5 @@
+import init_test # 修正测试路径到项目根目录，这样才能正确导入agent_matrix
+
 from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
 from agent_matrix.msg.general_msg import SpecialDownstreamSet
 from agent_matrix.agent.agent_extraction import ExtractionAgent
