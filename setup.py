@@ -3,9 +3,11 @@
 rm -r dist
 pip install .
 python -m build
-cp ./dist/*.whl ./release
-cp ./dist/gradio-3.32.10-py3-none-any.whl /home/fuqingxu/faka-docker-compose/faka-docker-compose/gpt_academic/docs/gradio-3.32.10-py3-none-any.whl
 
+rm -rf build
+rm -rf dist
+python setup.py sdist bdist_wheel
+twine upload dist/*
 
 """
 
@@ -36,8 +38,8 @@ extra_files = package_files('agent_matrix')
 
 
 setuptools.setup(
-    name="agent_matrix",
-    version="4.1.0",
+    name="agent-matrix",
+    version="0.1.0",
     author="QingxuFu",
     author_email="qingxu.fu@outlook.com",
     description="Generating high-level intelligent agents via nesting basic LM agents",
