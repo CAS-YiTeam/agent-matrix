@@ -38,7 +38,7 @@ extra_files = package_files('agent_matrix')
 
 
 setuptools.setup(
-    name="agent-matrix",
+    name="py-agent-matrix",
     version="0.1.0",
     author="QingxuFu",
     author_email="qingxu.fu@outlook.com",
