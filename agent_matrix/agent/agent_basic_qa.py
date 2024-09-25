@@ -98,7 +98,7 @@ class BasicQaAgent(Agent):
         downstream = {"main_input": raw_output, "history": downstream_history}
 
         if self.finish_callback is not None:
-            self.finish_callback(downstream)
+            downstream = self.finish_callback(downstream, kwargs, msg)
         if DEBUG_MOD: input('Press Enter to continue...')
         # return
         return downstream

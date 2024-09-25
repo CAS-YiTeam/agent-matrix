@@ -37,7 +37,7 @@ extra_files = package_files('agent_matrix')
 
 setuptools.setup(
     name="agent_matrix",
-    version="4.0.0",
+    version="4.1.0",
     author="QingxuFu",
     author_email="qingxu.fu@outlook.com",
     description="Generating high-level intelligent agents via nesting basic LM agents",

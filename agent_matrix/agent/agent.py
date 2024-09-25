@@ -1,12 +1,15 @@
 import time
 import pickle
 import threading
+import websockets
+import websockets.exceptions
 try:
     from websockets.sync.client import connect
 except ImportError:
     raise ImportError("Import websockets failed, upgrade websockets by running: pip install websockets --upgrade")
 from agent_matrix.msg.general_msg import GeneralMsg
 from threading import Event
+from loguru import logger
 
 
 class AgentProperties(object):
@@ -119,7 +122,7 @@ class AgentCommunication():
         # do not call this function directly
         host = self.matrix_host
         port = str(self.matrix_port)
-        self._websocket_connection = connect(f"ws://{host}:{port}/ws_agent")
+        self._websocket_connection = connect(f"ws://{host}:{port}/ws_agent", close_timeout=600)
         self._websocket_connection.temp_event_dict = {}
         msg = GeneralMsg(src=self.agent_id, dst="matrix", command="connect_to_matrix", kwargs={"agent_id": self.agent_id})
         self._send_msg(msg)
@@ -135,17 +138,20 @@ class AgentCommunication():
 
     def _begin_acquire_command(self):
         # do not call this function directly
-        while True:
-            # block and wait for command
-            msg = self._recv_msg()
-            # handle command
-            self._handle_command(msg)
-            # reply if needed
-            if msg.need_reply:
-                msg.dst, msg.src = msg.src, msg.dst
-                msg.command += '.re'
-                msg.need_reply = False
-                self._send_msg(msg)
+        try:
+            while True:
+                # block and wait for command
+                msg = self._recv_msg()
+                # handle command
+                self._handle_command(msg)
+                # reply if needed
+                if msg.need_reply:
+                    msg.dst, msg.src = msg.src, msg.dst
+                    msg.command += '.re'
+                    msg.need_reply = False
+                    self._send_msg(msg)
+        except websockets.exceptions.ConnectionClosed:
+            logger.info(f"[{self.agent_id}] Agent offline")
 
     def wakeup_in_new_thread(self, msg):
         # deal with the message from upstream
@@ -205,6 +211,8 @@ class AgentBasic(AgentProperties, AgentCommunication):
             msg.children_select_override = downstream["children_select_override"]
         if downstream.get("call_children_again", None):
             msg.call_children_again = downstream["call_children_again"]
+        if downstream.get("dictionary_logger", None) and isinstance(downstream["dictionary_logger"], dict):
+            msg.dictionary_logger.update(downstream["dictionary_logger"])
         # keep level shift unchanged
         msg.level_shift = msg.level_shift
         self._send_msg(msg)

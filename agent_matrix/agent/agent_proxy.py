@@ -373,6 +373,7 @@ class AgentProxy(AgentProxyLogicFlow):
             if children: children[-1].create_edge_to(new_a)
             children.append(new_a)
         return children
+
     # @user_fn
     def create_agent(self, *args, **kwargs) -> Self:
         return self.create_child_agent(*args, **kwargs)
@@ -458,6 +459,7 @@ class AgentProxy(AgentProxyLogicFlow):
     def activate(self):
         # 1. send msg to real agent
         # 2. wait '___on_agent_finish___'
+        if self.agent_activity == "active": return
         self.activate_agent()
 
     # @user_fn

@@ -106,7 +106,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                     "--agent-class", base64.b64encode(pickle.dumps(agent_class)),
                     "--matrix-host", str(host),
                     "--matrix-port", str(port),
-                    "--agent-kwargs", base64.b64encode(pickle.dumps(agent_kwargs)),
+                    "--agent-kwargs", base64.b64encode(pickle.dumps(agent_kwargs)), # if something goes wrong here, try non-debug / non-jupyter mode | 如果这里出现报错，且使用了Pydantic模型, 请尝试: 1.把自定义的Pydantic模型放到别的py源文件中，然后import试试
                 )
             )
 
@@ -139,6 +139,15 @@ class MasterMindMatrix(MasterMindWebSocketServer):
         """
         kwargs['parent'] = self
         return self.create_agent(*args, **kwargs)
+
+    def create_child_agent_sequential(self, agent_sequence:list):
+        children = []
+        for a_kwargs in agent_sequence:
+            a_kwargs['parent'] = self
+            new_a = self.create_agent(**a_kwargs)
+            if children: children[-1].create_edge_to(new_a)
+            children.append(new_a)
+        return children
 
     def search_children_by_id(self, agent_id:str, blocking:bool=False):
         for c in self.get_all_agents_in_matrix():

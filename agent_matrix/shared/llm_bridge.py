@@ -16,6 +16,7 @@ class RequestLlmSubClass():
         chat_kwargs['inputs'] = query
         chat_kwargs['history'] = history
         chat_kwargs['sys_prompt'] = sys_prompt
+        chat_kwargs['observe_window'] = []
         chat_kwargs['llm_kwargs']['temperature'] = temperature
         result = predict_no_ui_long_connection(**chat_kwargs)
         return result

@@ -2,4 +2,4 @@ networkx
 vhmap
 loguru
 cloudpickle
-void_terminal
+void_terminal>=1.1.2

@@ -93,6 +93,8 @@ class GeneralMsg(BaseModel):
 
     call_children_again: bool = False
 
+    dictionary_logger: dict = {}
+
     kwargs: dict = {}
 
     level_shift: str = '→' # from  '↑', '↓', '→'
