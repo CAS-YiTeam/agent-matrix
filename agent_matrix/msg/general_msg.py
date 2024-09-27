@@ -84,20 +84,38 @@ class GeneralMsg(BaseModel):
         # enum "agent_activate"
 
     num_step: int = 0
+        # how many steps this message has been passed in the workflow
 
     need_reply: bool = False
+        # whether this message needs a reply
 
     downstream_override: str = None
+        # which downstream to use
+
+    downstream_split_override: List[str] = None
+        # allow one agent to wake up multiple children
+        # warning: when `downstream_split_override` is set, 
+        #          `downstream_override` must be None, 
+        #          and `kwargs` must be a list that equals the length of `downstream_split_override`
 
     children_select_override: str = None
+        # explicitly select children
 
     call_children_again: bool = False
+        # call children agent once more
+
+    dictionary_logger: dict = {}
+        # record trivial stuff accumulated during the workflow
 
     dictionary_logger: dict = {}
 
     kwargs: dict = {}
+        # downstream arguments (including main_input)
 
     level_shift: str = '→' # from  '↑', '↓', '→'
+        # '→': pass to agents in the same level
+        # '↑': pass to agents in the upper level (pass to parent)
+        # '↓': pass to agents in the lower level (pass to children)
 
     def print_string(self):
         return print_msg_string(self.kwargs, self)

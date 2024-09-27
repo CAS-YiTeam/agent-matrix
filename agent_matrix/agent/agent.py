@@ -203,16 +203,35 @@ class AgentBasic(AgentProperties, AgentCommunication):
         msg.dst = self.proxy_id
         msg.command = "on_agent_fin"
         msg.kwargs = downstream
-        # for switch agent, add downstream_override
-        if downstream.get("downstream_override", None):
-            msg.downstream_override = downstream["downstream_override"]
-        # for groupchat agent, add children_select_override
-        if downstream.get("children_select_override", None):
-            msg.children_select_override = downstream["children_select_override"]
-        if downstream.get("call_children_again", None):
-            msg.call_children_again = downstream["call_children_again"]
-        if downstream.get("dictionary_logger", None) and isinstance(downstream["dictionary_logger"], dict):
-            msg.dictionary_logger.update(downstream["dictionary_logger"])
+
+
+        if msg.downstream_split_override is not None: # allow one agent to wake up multiple children
+
+            # warning: when `downstream_split_override` is set, 
+            #          `downstream_override` must be None, 
+            #          and `kwargs` must be a list that equals the length of `downstream_split_override`
+            if msg.downstream_override is not None:
+                raise ValueError("downstream_override and downstream_split_override cannot be both set")
+            if (not isinstance(msg.kwargs, list)) or (len(msg.kwargs) != len(msg.downstream_split_override)):
+                raise ValueError("msg.kwargs (i.e. downstream) must be a list that equals the length of downstream_split_override")
+            if not isinstance(downstream, list):
+                raise ValueError("downstream must be a list when downstream_split_override is set")
+
+        else: # normal case
+
+
+            # for switch agent, add downstream_override
+            if downstream.get("downstream_override", None):
+                msg.downstream_override = downstream["downstream_override"]
+
+            # for groupchat agent, add children_select_override
+            if downstream.get("children_select_override", None):
+                msg.children_select_override = downstream["children_select_override"]
+            if downstream.get("call_children_again", None):
+                msg.call_children_again = downstream["call_children_again"]
+            if downstream.get("dictionary_logger", None) and isinstance(downstream["dictionary_logger"], dict):
+                msg.dictionary_logger.update(downstream["dictionary_logger"])
+
         # keep level shift unchanged
         msg.level_shift = msg.level_shift
         self._send_msg(msg)

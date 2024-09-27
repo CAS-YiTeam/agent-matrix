@@ -47,7 +47,6 @@ class GroupChatAgent(BasicQaAgent):
         self.need_history = kwargs.get("need_history", True)
         self.max_history_depth = kwargs.get("max_history_depth", 8)
         self.prompt_examples = kwargs.get("prompt_examples", "")
-        self.use_debug_cache = kwargs.get("use_debug_cache", False)
         self.query_construction = kwargs.get("query_construction", "Do your job according to the instructions.") # default: tell lm to do its job according to the sys_prompt
         self.llm_request = RequestLlmSubClass(kwargs.get("temperature", 0.5))
         self.mode = 'only_query'
@@ -104,8 +103,7 @@ class GroupChatAgent(BasicQaAgent):
             raw_output = self.llm_request.generate_llm_request(
                 query=join_query_and_history,
                 history=[],
-                sys_prompt="",
-                use_debug_cache=self.use_debug_cache)
+                sys_prompt="")
         valid, next_speaker, terminate = parse_speaker_maunally(raw_output, agent_id_array)
         return valid, next_speaker, terminate
 

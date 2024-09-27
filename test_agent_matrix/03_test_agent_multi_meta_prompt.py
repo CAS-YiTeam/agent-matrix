@@ -65,7 +65,6 @@ meta_expert = mmm.create_child_agent(
     agent_id=f"meta_expert",
     agent_class=BasicQaAgent,
     agent_kwargs={
-        "use_debug_cache": False,
         "sys_prompt": meta_expert_long_system_prompt,
         "query_construction": first_move_prompt,
     },
@@ -81,7 +80,6 @@ expert = extractor.create_downstream_agent(
     agent_id=f"expert",
     agent_class=BasicQaAgent,
     agent_kwargs={
-        "use_debug_cache": False,
         "need_history": False,
         "query_construction": "{MAIN_INPUT_PLACEHOLDER}"
     },
@@ -90,7 +88,6 @@ meta_expert_next = expert.create_downstream_agent(
     agent_id=f"meta_expert_next",
     agent_class=BasicQaAgent,
     agent_kwargs={
-        "use_debug_cache": False,
         "sys_prompt": meta_expert_long_system_prompt,
         "query_construction": next_more_prompt,
     },

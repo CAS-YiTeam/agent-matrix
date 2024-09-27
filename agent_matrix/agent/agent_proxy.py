@@ -2,6 +2,7 @@ import pickle
 import asyncio
 import threading
 import uuid
+import copy
 from loguru import logger
 from fastapi import WebSocket
 from agent_matrix.agent.interaction import InteractionManager
@@ -263,18 +264,33 @@ class AgentProxyLogicFlow(BaseProxy):
             downstream_agent.___on_agent_wakeup___(msg)
         return
 
-    def wakeup_downstream_agent(self, msg):
+    def wakeup_downstream_agent(self, msg: GeneralMsg):
         # find downstream agents
-        downstream_override = msg.get("downstream_override", None)
+        downstream_override = msg.downstream_override
+        downstream_split_override = msg.downstream_split_override
+
         if downstream_override:
+            # special case: dynamically override downstream
             if downstream_override == SpecialDownstreamSet.auto_downstream:
                 self._wakeup_downstream_agent_regular(msg)
             elif downstream_override == SpecialDownstreamSet.return_to_parent:
                 self._wakeup_parent(msg)
             else:
                 self._wakeup_brother_agent(msg, downstream_override)
+
+        elif downstream_split_override:
+            # special case: dynamically split & override downstream
+            for _kwargs, _downstream_override in zip(msg.kwargs, msg.downstream_split_override):
+                msg_split: GeneralMsg = copy.deepcopy(msg)
+                msg_split.kwargs = _kwargs
+                msg_split.downstream_override = _downstream_override
+                msg_split.downstream_split_override = None
+                self.wakeup_downstream_agent(msg_split)
+
         else:
+            # normal case
             self._wakeup_downstream_agent_regular(msg)
+
         return
 
     def ___on_agent_wakeup___(self, msg):

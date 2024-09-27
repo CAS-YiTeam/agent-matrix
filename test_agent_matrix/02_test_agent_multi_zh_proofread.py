@@ -18,7 +18,6 @@ mmm.begin_event_loop_non_blocking()
     agent_id=f"校对者",
     agent_class=BasicQaAgent,
     agent_kwargs={
-        "use_debug_cache": True,
         "sys_prompt": "你是一个中文写作专家，任务是校对文本，找出其中的错误。你只需要做好自己的分内工作即可。使用中文。",
         "query_construction": "{MAIN_INPUT_PLACEHOLDER}\n" + "Do your job according to the instructions, consider the results from other agents."
     }
@@ -29,7 +28,6 @@ agent_kwargs = {""}
     agent_id=f"润色者",
     agent_class=BasicQaAgent,
     agent_kwargs={
-        "use_debug_cache": True,
         "sys_prompt": "你是一个中文写作专家，任务是润色文本。你只需要做好自己的分内工作即可。使用中文。",
         "query_construction": "Do your job according to the instructions, consider the results from other agents if there are any."
     }
@@ -39,7 +37,6 @@ agent_kwargs = {""}
     agent_id=f"去口语化",
     agent_class=BasicQaAgent,
     agent_kwargs={
-        "use_debug_cache": True,
         "sys_prompt": "你是一个中文写作专家，你的任务是对不符合中文书面语言习惯的句子进行修改。你只需要做好自己的分内工作即可。使用中文。",
         "query_construction": "Do your job according to the instructions, consider the results from other agents if there are any."
     }
@@ -49,7 +46,6 @@ agent_kwargs = {""}
     agent_id=f"汇总者",
     agent_class=BasicQaAgent,
     agent_kwargs={
-        "use_debug_cache": False,
         "sys_prompt": "你的任务是将校对者、润色者和本地化者的工作结果进行汇总，形成最终的文本。不得输出除最终文本之外的任何废话。使用中文。",
         "query_construction": "Do your job according to the instructions, consider the results from other agents if there are any."
     }

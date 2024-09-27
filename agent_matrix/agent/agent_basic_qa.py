@@ -23,7 +23,6 @@ class BasicQaAgent(Agent):
         self.need_history = kwargs.get("need_history", True)
         self.max_history_depth = kwargs.get("max_history_depth", 8)
         self.prompt_examples = kwargs.get("prompt_examples", "")
-        self.use_debug_cache = kwargs.get("use_debug_cache", False)
         self.query_construction = kwargs.get("query_construction", "Do your job according to the instructions.") # default: tell lm to do its job according to the sys_prompt
         self.llm_request = RequestLlmSubClass(kwargs.get("temperature", 0.5))
         self.finish_callback = kwargs.get("finish_callback", None)
@@ -31,7 +30,7 @@ class BasicQaAgent(Agent):
 
     def agent_task_cycle(self):
         # do nothing
-        time.sleep(60.0)
+        time.sleep(2.0)
         return
 
     def on_children_fin(self, kwargs:dict, msg: GeneralMsg):
@@ -69,10 +68,10 @@ class BasicQaAgent(Agent):
 
         # 5. make the request
         if self.mode == 'history_query':
-            raw_output = self.llm_request.generate_llm_request(query=query, history=history_for_llm_request, sys_prompt=sys_prompt, use_debug_cache=self.use_debug_cache)
+            raw_output = self.llm_request.generate_llm_request(query=query, history=history_for_llm_request, sys_prompt=sys_prompt)
         elif self.mode == 'only_query':
             join_query_and_history = "\n".join(history_for_llm_request) + "\n\n" + query
-            raw_output = self.llm_request.generate_llm_request(query=join_query_and_history, history=[], sys_prompt=sys_prompt, use_debug_cache=self.use_debug_cache)
+            raw_output = self.llm_request.generate_llm_request(query=join_query_and_history, history=[], sys_prompt=sys_prompt)
 
         self.agent_status = raw_output
         print_kwargs["upstream_input"] = print_kwargs.pop("main_input")
