@@ -1,27 +1,32 @@
 import importlib
 import time
 import os
+
+
+from loguru import logger
 from functools import lru_cache
+
 
 pj = os.path.join
 default_user_name = 'default_user'
 
+
 def read_env_variable(arg, default_value):
 
-    arg_with_prefix = "GPT_ACADEMIC_" + arg
+    arg_with_prefix = "AGENT_MATRIX_" + arg
     if arg_with_prefix in os.environ:
         env_arg = os.environ[arg_with_prefix]
     elif arg in os.environ:
         env_arg = os.environ[arg]
     else:
         raise KeyError
-    print(f"[ENV_VAR] loading {arg}, default value: {default_value} --> modified value: {env_arg}")
+    logger.info(f"[ENV_VAR] Loading {arg}, default value: {default_value} --> modified value: {env_arg}")
     try:
         if isinstance(default_value, bool):
             env_arg = env_arg.strip()
             if env_arg == 'True': r = True
             elif env_arg == 'False': r = False
-            else: print('Enter True or False, but have:', env_arg); r = default_value
+            else: logger.error('Enter True or False, but have:', env_arg); r = default_value
         elif isinstance(default_value, int):
             r = int(env_arg)
         elif isinstance(default_value, float):
@@ -36,13 +41,13 @@ def read_env_variable(arg, default_value):
             assert arg == "proxies"
             r = eval(env_arg)
         else:
-            print(f"[ENV_VAR] 环境变量{arg}不支持通过环境变量设置! ")
+            logger.error(f"[ENV_VAR] Setting ({arg}) does not support changing by environment variable!")
             raise KeyError
     except:
-        print(f"[ENV_VAR] 环境变量{arg}加载失败! ")
-        raise KeyError(f"[ENV_VAR] 环境变量{arg}加载失败! ")
+        logger.error(f"[ENV_VAR] Load env variable ({arg}) fail! ")
+        raise KeyError(f"[ENV_VAR] Load env variable ({arg}) fail! ")
 
-    print(f"[ENV_VAR] 成功读取环境变量{arg}")
+    logger.info(f"[ENV_VAR] Load env variable successful ({arg}).")
     return r
 
 

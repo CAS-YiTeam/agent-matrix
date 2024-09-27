@@ -34,3 +34,4 @@ llm_cache
 dist
 temp
 cradle*
+.vscode

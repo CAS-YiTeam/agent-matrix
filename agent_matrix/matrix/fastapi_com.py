@@ -21,4 +21,4 @@ class FastapiWebCommunication():
             data = await websocket.receive_bytes()
             await websocket.send_text(f"Message received: {data}")
 
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        uvicorn.run(app, host="0.0.0.0", port=8000, ws_ping_interval=300, ws_ping_timeout=600)
