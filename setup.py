@@ -1,16 +1,3 @@
-"""
-
-rm -r dist
-pip install .
-python -m build
-
-rm -rf build
-rm -rf dist
-python setup.py sdist bdist_wheel
-twine upload dist/*
-
-"""
-
 import setuptools, glob, os
 
 with open("README.md", "r", encoding="utf-8") as fh:
@@ -39,7 +26,7 @@ extra_files = package_files('agent_matrix')
 
 setuptools.setup(
     name="py-agent-matrix",
-    version="0.1.0",
+    version="0.1.1",
     author="QingxuFu",
     author_email="qingxu.fu@outlook.com",
     description="Generating high-level intelligent agents via nesting basic LM agents",
