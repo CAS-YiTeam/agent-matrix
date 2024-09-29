@@ -7,8 +7,8 @@ def structure_output(main_input, prompt, err_msg, run_gpt_fn, pydantic_cls):
         sys_prompt=prompt + gpt_json_io.format_instructions
     )
     try:
-        err_msg = ""
         obj = gpt_json_io.generate_output_auto_repair(analyze_res, run_gpt_fn)
+        err_msg = ""
     except JsonStringError as e:
         return None, err_msg
     return obj, err_msg

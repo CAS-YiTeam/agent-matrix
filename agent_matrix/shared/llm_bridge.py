@@ -43,13 +43,19 @@ class RequestLlmSubClass():
         return result
 
     def structure_output(self, main_input, format_instruction, pydantic_cls):
-        err_msg = "Cannot Complete Given Task."
+        try_n_times = 3
 
-        def run_gpt_fn(main_input, sys_prompt):
-            return self.generate_llm_request(main_input, [], sys_prompt)
+        for attempt in range(try_n_times):
+            err_msg = "Cannot Complete Given Task."
 
-        obj, err_msg = structure_output(main_input, format_instruction, err_msg, run_gpt_fn, pydantic_cls=pydantic_cls)
-        if err_msg == "":
-            return obj
-        else:
-            return None
+            def run_gpt_fn(main_input, sys_prompt):
+                return self.generate_llm_request(main_input, [], sys_prompt)
+
+            obj, err_msg = structure_output(main_input, format_instruction, err_msg, run_gpt_fn, pydantic_cls=pydantic_cls)
+
+            if err_msg == "":
+                return obj
+            else:
+                continue # try again
+
+        return None

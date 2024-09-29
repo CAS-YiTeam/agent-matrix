@@ -12,6 +12,7 @@ class StructuredArrayOutputAgent(BasicQaAgent):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.schema = kwargs.get("schema", None)
+        self.max_history_depth = kwargs.get("max_history_depth", 2)
         self.format_instruction = kwargs.get("format_instruction", "You should extract the information from the given context, and return the result in json format.")
 
 
@@ -23,8 +24,9 @@ class StructuredArrayOutputAgent(BasicQaAgent):
         main_input = kwargs["main_input"]
 
         # 4. complete history
+        previous = ''.join(history[-self.max_history_depth:])
         history.append(main_input)
-        obj_arr = self.llm_request.structure_output(main_input, self.format_instruction, pydantic_cls=self.schema)
+        obj_arr = self.llm_request.structure_output(previous + main_input, self.format_instruction, pydantic_cls=self.schema)
 
         downstream = []
         downstream_split_override = []
