@@ -91,8 +91,8 @@ class MasterMindMatrix(MasterMindWebSocketServer):
             agent_proxy = AgentProxy(matrix=self, agent_id=agent_id, parent=parent, agent_kwargs=agent_kwargs)
             if agent_id in self.websocket_connections:
                 logger.error(
-                    f"agent_id {agent_id} already exists in self.websocket_connections")
-                raise RuntimeError()
+                    f"agent_id `{agent_id}` already exists in self.websocket_connections")
+                raise RuntimeError("Duplicate agent_id! " + f"agent_id `{agent_id}` already exists in self.websocket_connections")
 
             self.websocket_connections[agent_id] = agent_proxy
             self.register_parent(parent=parent, agent_proxy=agent_proxy)

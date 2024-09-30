@@ -58,12 +58,15 @@ class BaseProxy(object):
         self.proxy_id = '_proxy_' + agent_id
         self.websocket = websocket
         self.agent_kwargs = agent_kwargs
+        self.join_upstream = self.agent_kwargs.get("join_upstream", False)
+        self.upstream_pending_register = {}
         self.client_id = client_id
         self.message_queue_send_to_real_agent = message_queue_out
         self.message_queue_get_from_real_agent = message_queue_in
         self.event_triggers = {}
         self.interaction = InteractionManager(self)
         self.allow_level_up = True
+        self.wakeup_lock = threading.Lock()
         return
 
     def __enter__(self):
@@ -280,8 +283,15 @@ class AgentProxyLogicFlow(BaseProxy):
 
         elif downstream_split_override:
             # special case: dynamically split & override downstream
+            downstream_see_you_again_uid_arr = []
             for _kwargs, _downstream_override in zip(msg.kwargs, msg.downstream_split_override):
+                downstream_see_you_again_uid = msg.flow_uid + uuid.uuid4().hex
+                downstream_see_you_again_uid_arr.append(downstream_see_you_again_uid)
+
+            for _kwargs, _downstream_override, downstream_see_you_again_uid in zip(msg.kwargs, msg.downstream_split_override, downstream_see_you_again_uid_arr):
                 msg_split: GeneralMsg = copy.deepcopy(msg)
+                msg_split.downstream_see_you_again_uid.append(downstream_see_you_again_uid)
+                msg_split.downstream_see_you_again_waitlist.append(downstream_see_you_again_uid_arr)
                 msg_split.kwargs = _kwargs
                 msg_split.downstream_override = _downstream_override
                 msg_split.downstream_split_override = None
@@ -293,16 +303,53 @@ class AgentProxyLogicFlow(BaseProxy):
 
         return
 
-    def ___on_agent_wakeup___(self, msg):
+    def ___on_agent_wakeup___(self, msg: GeneralMsg):
         """ AT HERE, THE AGENT BEGIN TO WORK !
                     ⏰⏰⏰⏰⏰
         """
+
+        # join flow (that is splited before by `downstream_split_override`)
+        if self.join_upstream:
+            with self.wakeup_lock:
+                _continue = self.join_upstream_condition(msg)
+                if not _continue: return
+
         self.agent_activity = "wakeup"
         msg.src = self.proxy_id
         msg.dst = self.agent_id
         msg.command = "on_agent_wakeup"
         self.send_to_real_agent(msg)
         return
+
+    def join_upstream_condition(self, msg: GeneralMsg)->bool:
+        # is this the first?
+        if msg.flow_uid not in self.upstream_pending_register:
+            self.upstream_pending_register[msg.flow_uid] = []
+        # add to register
+        downstream_see_you_again_uid = msg.downstream_see_you_again_uid[-1]
+        self.upstream_pending_register[msg.flow_uid].append([downstream_see_you_again_uid, msg])
+        # all pending uids
+        all_pending_uids = []
+        for see_you_again_uid, _ in self.upstream_pending_register[msg.flow_uid]:
+            all_pending_uids.append(see_you_again_uid)
+        # print debug
+        n_arrive = len(self.upstream_pending_register[msg.flow_uid])
+        n_total = len(msg.downstream_see_you_again_waitlist[-1])
+        logger.debug(f'join upstream for {msg.flow_uid}, waiting for {n_arrive} / {n_total}.')
+        # is everything in wait list satisfied?
+        for see_you_again_uid in msg.downstream_see_you_again_waitlist[-1]:
+            if see_you_again_uid not in all_pending_uids:
+                # if not satisfied, return and wait
+                return False
+        # if the for loop is passed, we are clear to go
+        msg.downstream_see_you_again_msg_arr: List[GeneralMsg] = []     # type: ignore
+        msg.downstream_see_you_again_msg_arr = [msg for _, msg in self.upstream_pending_register[msg.flow_uid]]
+        # msg.downstream_see_you_again_waitlist: List[List[str]]          # type: ignore
+        msg.downstream_see_you_again_waitlist.pop(-1)
+        # msg.downstream_see_you_again_uid: List[str] = []                # type: ignore
+        msg.downstream_see_you_again_uid.pop(-1)
+        self.upstream_pending_register.pop(msg.flow_uid)
+        return True
 
     def ___on_agent_finish___(self, msg):
         """ AT HERE, THE AGENT FINISH WORK !

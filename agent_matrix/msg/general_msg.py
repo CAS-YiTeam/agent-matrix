@@ -98,6 +98,15 @@ class GeneralMsg(BaseModel):
         #          `downstream_override` must be None, 
         #          and `kwargs` must be a list that equals the length of `downstream_split_override`
 
+    downstream_see_you_again_waitlist: List[List[str]] = []
+        # when a flow is splited, we use this stack list to re-join the splited flow in some special join agents
+
+    downstream_see_you_again_uid: List[str] = []
+        # when a flow is splited, we use this stack uid to re-join the splited flow in some special join agents
+
+    downstream_see_you_again_msg_arr: List["GeneralMsg"] = []
+        # when a flow is splited, we use this pass re-joined messages
+
     children_select_override: str = None
         # explicitly select children
 
@@ -106,8 +115,6 @@ class GeneralMsg(BaseModel):
 
     dictionary_logger: dict = {}
         # record trivial stuff accumulated during the workflow
-
-    dictionary_logger: dict = {}
 
     kwargs: dict = {}
         # downstream arguments (including main_input)

@@ -25,6 +25,7 @@ class BasicQaAgent(Agent):
         self.prompt_examples = kwargs.get("prompt_examples", "")
         self.query_construction = kwargs.get("query_construction", "Do your job according to the instructions.") # default: tell lm to do its job according to the sys_prompt
         self.llm_request = RequestLlmSubClass(kwargs.get("temperature", 0.5))
+        self.start_callback = kwargs.get("start_callback", None)
         self.finish_callback = kwargs.get("finish_callback", None)
         self.mode = 'history_query'
 
@@ -37,6 +38,9 @@ class BasicQaAgent(Agent):
         return kwargs
 
     def on_agent_wakeup(self, kwargs:dict, msg: GeneralMsg):
+        if self.start_callback is not None:
+            kwargs, msg = self.start_callback(kwargs, msg)
+
         # 1. get history if there is any
         print_kwargs = copy.deepcopy(kwargs)
         history = kwargs.get("history", [])
