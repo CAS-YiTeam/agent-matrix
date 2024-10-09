@@ -26,7 +26,7 @@ extra_files = package_files('agent_matrix')
 
 setuptools.setup(
     name="py-agent-matrix",
-    version="0.1.3",
+    version="0.1.4",
     author="Hao Ma, Tianyi Hu, Qingxu Fu",
     author_email="qingxu.fu@outlook.com",
     description="Generating high-level intelligent agents via nesting basic LM agents",
