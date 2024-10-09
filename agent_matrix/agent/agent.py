@@ -11,11 +11,13 @@ except ImportError:
 from agent_matrix.msg.general_msg import GeneralMsg
 from threading import Event
 from loguru import logger
+from pydantic import BaseModel, Field
 
 
-class AgentProperties(object):
+class AgentProperties(BaseModel, extra='allow'):
 
     def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.is_proxy = kwargs["is_proxy"]
         self.agent_id = kwargs["agent_id"]
         self.proxy_id = '_proxy_' + self.agent_id
