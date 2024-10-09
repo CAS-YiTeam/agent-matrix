@@ -72,7 +72,7 @@ n11 = mmm.create_agent(
     agent_kwargs = {
         "switch_key": "intention",
         "switch_case": {
-            "personal_info": "node-12", # if .intention == "personal_info", then go to node-12
+            "personal_info": "node-12", # if .intention == "personal_info", then go to node-12 (first is default)
             "peek_memory": "node-13",   # if .intention == "peek_memory", then go to node-13
         }
     }
