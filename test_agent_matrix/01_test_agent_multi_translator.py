@@ -20,6 +20,7 @@ mmm.begin_event_loop_non_blocking()
 pro_zh_translator = mmm.create_child_agent(
     agent_id=f"pro_zh_translator",
     agent_class="agent_matrix.agent.agent_basic_qa->BasicQaAgent",
+    run_in_matrix_process=True,
     agent_kwargs={
         "sys_prompt": "",
         "query_construction":
@@ -33,6 +34,7 @@ children = pro_zh_translator.create_child_agent_sequential(
         create_agent_arg_dict(
             agent_id = f"correct_domain",
             agent_class = "agent_matrix.agent.agent_basic_qa->BasicQaAgent",
+            # run_in_matrix_process=True,
             agent_kwargs = {
                 "sys_prompt": "纠正领域翻译的错误。例如，Agent这个单词在机器学习领域中，应当翻译为“智能体”。",
                 "query_construction": "这篇文章来及哪个领域？在这个领域中，上述翻译中哪些专业名词存在翻译错误？请检查并列举这些错误。然后给出完成的正确翻译。"
@@ -41,6 +43,7 @@ children = pro_zh_translator.create_child_agent_sequential(
         create_agent_arg_dict(
             agent_id=f"passive_editor",
             agent_class="agent_matrix.agent.agent_basic_qa->BasicQaAgent",
+            run_in_matrix_process=True,
             agent_kwargs={
                 "sys_prompt": dedent("""
                                         移除句子中所有的“我们”一词，将涉及到的动词改为被动语态。仅输出修改后的句子。
@@ -62,6 +65,7 @@ children = pro_zh_translator.create_child_agent_sequential(
         create_agent_arg_dict(
             agent_id=f"concluder",
             agent_class="agent_matrix.agent.agent_basic_qa->BasicQaAgent",
+            # run_in_matrix_process=True,
             agent_kwargs={
                 "query_construction": "根据以上智能体（「pro_zh_translator」，「passive_editor」，「reflector」）的讨论，给出最终的中文翻译结果，用```（markdown）包裹翻译结果。"
             }

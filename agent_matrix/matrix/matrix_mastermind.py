@@ -63,6 +63,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
                      agent_id: str,
                      agent_class: str,
                      agent_kwargs: dict,
+                     run_in_matrix_process: bool = False,
                      remote_matrix_kwargs: dict = None,
                      parent: AgentProxy = None)->AgentProxy:
         """ 用阻塞的方式，创建一个智能体，并等待它连接到母体
@@ -88,7 +89,7 @@ class MasterMindMatrix(MasterMindWebSocketServer):
             # 创建一个Agent在母体中的代理对象
             if parent is None:
                 parent = self
-            agent_proxy = AgentProxy(matrix=self, agent_id=agent_id, parent=parent, agent_kwargs=agent_kwargs)
+            agent_proxy = AgentProxy(matrix=self, agent_id=agent_id, parent=parent, agent_kwargs=agent_kwargs, run_in_matrix_process=run_in_matrix_process, agent_class=agent_class)
             if agent_id in self.websocket_connections:
                 logger.error(
                     f"agent_id `{agent_id}` already exists in self.websocket_connections")
@@ -96,38 +97,47 @@ class MasterMindMatrix(MasterMindWebSocketServer):
 
             self.websocket_connections[agent_id] = agent_proxy
             self.register_parent(parent=parent, agent_proxy=agent_proxy)
-            agent_kwargs = clean_up_unpickleble(agent_kwargs)
-            # 启动一个子进程，用于启动一个智能体
-            subprocess.Popen(
-                args=(
-                    sys.executable,
-                    agent_launcher_abspath,
-                    "--agent-id", agent_id,
-                    "--agent-class", base64.b64encode(pickle.dumps(agent_class)),
-                    "--matrix-host", str(host),
-                    "--matrix-port", str(port),
-                    "--agent-kwargs", base64.b64encode(pickle.dumps(agent_kwargs)), # if something goes wrong here, try non-debug / non-jupyter mode | 如果这里出现报错，且使用了Pydantic模型, 请尝试: 1.把自定义的Pydantic模型放到别的py源文件中，然后import试试
-                )
-            )
 
-            # 🕜 接下来，我们需要等待智能体启动完成，并连接母体的websocket
-            for i in reversed(range(30)):
-                if i % 5 == 0:
-                    logger.info(f"wait agent {agent_id} to connect to matrix, timeout in {i} seconds")
-                agent_proxy.connected_event.wait(timeout=1)
-                if agent_proxy.connected_event.is_set():
-                    break
-
-            if agent_proxy.connected_event.is_set():
-                # 成功！
+            if run_in_matrix_process:
+                # 跳过子进程，直接在本进程中启动智能体
                 logger.info(f"agent {agent_id} connected to matrix")
                 self.build_tree(target="")
                 # Render the tree
                 print(Panel(Columns([Text("New Agent Up"), self.agent_tree]), width=PANEL_WIDTH))
                 return agent_proxy
             else:
-                logger.error(f"agent {agent_id} failed to connect to matrix within the timeout limit")
-                return None
+                # 正常情况
+                agent_kwargs = clean_up_unpickleble(agent_kwargs)
+                # 启动一个子进程，用于启动一个智能体
+                subprocess.Popen(
+                    args=(
+                        sys.executable,
+                        agent_launcher_abspath,
+                        "--agent-id", agent_id,
+                        "--agent-class", base64.b64encode(pickle.dumps(agent_class)),
+                        "--matrix-host", str(host),
+                        "--matrix-port", str(port),
+                        "--agent-kwargs", base64.b64encode(pickle.dumps(agent_kwargs)), # if something goes wrong here, try non-debug / non-jupyter mode | 如果这里出现报错，且使用了Pydantic模型, 请尝试: 1.把自定义的Pydantic模型放到别的py源文件中，然后import试试
+                    )
+                )
+                # 🕜 接下来，我们需要等待智能体启动完成，并连接母体的websocket
+                for i in reversed(range(30)):
+                    if i % 5 == 0:
+                        logger.info(f"wait agent {agent_id} to connect to matrix, timeout in {i} seconds")
+                    agent_proxy.connected_event.wait(timeout=1)
+                    if agent_proxy.connected_event.is_set():
+                        break
+
+                if agent_proxy.connected_event.is_set():
+                    # 成功！
+                    logger.info(f"agent {agent_id} connected to matrix")
+                    self.build_tree(target="")
+                    # Render the tree
+                    print(Panel(Columns([Text("New Agent Up"), self.agent_tree]), width=PANEL_WIDTH))
+                    return agent_proxy
+                else:
+                    logger.error(f"agent {agent_id} failed to connect to matrix within the timeout limit")
+                    return None
 
     def execute_create_agent(self, *args, **kwargs):
         """和create_agent一样

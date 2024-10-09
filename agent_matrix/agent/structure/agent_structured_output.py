@@ -3,7 +3,6 @@ from agent_matrix.agent.agent_basic_qa import BasicQaAgent
 from textwrap import dedent
 from loguru import logger
 import json
-import json
 import os
 
 
@@ -26,18 +25,26 @@ class StructuredOutputAgent(BasicQaAgent):
 
         # 2. build query
         main_input = kwargs["main_input"]
+        if "{MAIN_INPUT_PLACEHOLDER}" in self.query_construction:
+            query = self.query_construction.format(MAIN_INPUT_PLACEHOLDER=main_input)
+        else:
+            query = self.query_construction
 
         # 4. complete history
-        history.append(main_input)
-        obj = self.llm_request.structure_output(main_input, self.format_instruction, pydantic_cls=self.schema)
+        previous = ''.join(history[-self.max_history_depth:])
+        obj = self.llm_request.structure_output(previous + query, self.format_instruction, pydantic_cls=self.schema)
 
+        # 4. build downstream
+        history.append(main_input)
         if obj is None:
-            downstream = {"main_input": main_input, "history": history}
+            downstream = {"main_input": "", "history": history}
             return downstream
 
+        # parse
         downstream_input = obj.json()
         downstream = {"main_input": downstream_input, "history": history}
 
+        # 5. finish
         if self.finish_callback is not None:
             downstream = self.finish_callback(downstream, kwargs, msg)
         return downstream

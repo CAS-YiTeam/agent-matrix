@@ -1,6 +1,6 @@
 from agent_matrix.msg.general_msg import GeneralMsg
 from agent_matrix.msg.general_msg import SpecialDownstreamSet
-from agent_matrix.agent.agent_basic_qa import BasicQaAgent
+from agent_matrix.agent.structure.agent_structured_output import StructuredOutputAgent
 from textwrap import dedent
 from loguru import logger
 
@@ -8,17 +8,7 @@ import json
 import os
 
 
-class StructuredArrayOutputAgent(BasicQaAgent):
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.schema = kwargs.get("schema", None)
-        self.max_history_depth = kwargs.get("max_history_depth", 2)
-        self.structure_agent_type = "extract_message" # "extract_message" or "according_to_query_construction"
-
-        if self.structure_agent_type == "extract_message":
-            self.format_instruction = kwargs.get("format_instruction", "You should extract the information from the given context, and return the result in json format.")
-        else:
-            self.format_instruction = kwargs.get("format_instruction", "You must give answer with json format, and the json format should be consistent with the schema.")
+class StructuredArrayOutputAgent(StructuredOutputAgent):
 
     def on_agent_wakeup(self, kwargs: dict, msg: GeneralMsg):
         # 1. get history if there is any
@@ -34,16 +24,16 @@ class StructuredArrayOutputAgent(BasicQaAgent):
         # 3. complete history
         previous = ''.join(history[-self.max_history_depth:])
         obj_arr = self.llm_request.structure_output(previous + query, self.format_instruction, pydantic_cls=self.schema)
-        
+
         # 4. build downstream
         history.append(main_input)
         if obj_arr is None:
-            downstream = {"main_input": downstream_input, "history": history}
+            downstream = {"main_input": "", "history": history}
             return downstream
 
+        # parse
         downstream = []
         downstream_split_override = []
-            
         for i, obj in enumerate(obj_arr.topic_arr):
             downstream_input = obj.json()
             downstream.append({"main_input": downstream_input, "history": history})
@@ -52,5 +42,10 @@ class StructuredArrayOutputAgent(BasicQaAgent):
             downstream_split_override.append(SpecialDownstreamSet.auto_downstream)
 
         msg.downstream_split_override = downstream_split_override
+
+        
+        # 5. finish
+        if self.finish_callback is not None:
+            downstream = self.finish_callback(downstream, kwargs, msg)
         return downstream
     

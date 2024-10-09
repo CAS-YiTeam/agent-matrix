@@ -3,6 +3,7 @@ import pickle
 import threading
 import websockets
 import websockets.exceptions
+from queue import Queue
 try:
     from websockets.sync.client import connect
 except ImportError:
@@ -23,6 +24,12 @@ class AgentProperties(object):
         self._websocket_connection = None
         self._activation_event = Event()
         self.activate = False
+        if self.matrix_host == "run_in_matrix_process":
+            self.matrix_handle = kwargs.get("matrix_handle", None)
+            self.run_in_matrix_process = True
+            self._receive_from_matrix = Queue()  # producer: matrix, consumer: agent
+        else:
+            self.run_in_matrix_process = False
 
     # @property
     # def agent_direct_children(self):
@@ -86,16 +93,6 @@ class AgentProperties(object):
         return self._send_msg_and_wait_reply(msg)
 
 
-    # def send_msg_and_wait_reply(self, wait_command:str, msg: GeneralMsg):
-    #     """ Send msg, then keep waiting until receiving expected reply.
-    #     """
-    #     self.send_to_real_agent(msg)
-    #     self.temp_event = threading.Event()
-    #     self.temp_event.return_value = None
-    #     self.register_trigger(wait_command, self.temp_event)
-    #     self.temp_event.wait()
-    #     return self.temp_event.return_value
-
 
 class AgentCommunication():
 
@@ -120,21 +117,42 @@ class AgentCommunication():
 
     def _connect_to_matrix(self):
         # do not call this function directly
-        host = self.matrix_host
-        port = str(self.matrix_port)
-        self._websocket_connection = connect(f"ws://{host}:{port}/ws_agent", close_timeout=600)
-        self._websocket_connection.temp_event_dict = {}
         msg = GeneralMsg(src=self.agent_id, dst="matrix", command="connect_to_matrix", kwargs={"agent_id": self.agent_id})
+        if self.run_in_matrix_process:
+            # special case for running in the same process
+            pass
+        else:
+            host = self.matrix_host
+            port = str(self.matrix_port)
+            self._websocket_connection = connect(f"ws://{host}:{port}/ws_agent", close_timeout=600)
+            self._websocket_connection.temp_event_dict = {}
         self._send_msg(msg)
 
     def _send_msg(self, msg):
         # do not call this function directly
-        self._websocket_connection.send(pickle.dumps(msg))
+        if self.run_in_matrix_process:
+            # special case for running in the same process
+            if msg.dst == "matrix":
+                return
+            else:
+                # send to the proxy agent 发送到自己的proxy
+                target_agent_proxy = self.matrix_handle.search_children_by_id(self.agent_id, blocking=True)
+                if target_agent_proxy is not None:
+                    threading.Thread(target=target_agent_proxy.handle_command, args=(msg,), daemon=True).start()
+                else:
+                    logger.log("error", f"target_agent_proxy is None")
+        else:
+            self._websocket_connection.send(pickle.dumps(msg))
 
     def _recv_msg(self):
         # do not call this function directly
-        msg: GeneralMsg = pickle.loads(self._websocket_connection.recv())
-        return msg
+        if self.run_in_matrix_process:
+            # special case for running in the same process
+            msg = self._receive_from_matrix.get()
+            return msg
+        else:
+            msg: GeneralMsg = pickle.loads(self._websocket_connection.recv())
+            return msg
 
     def _begin_acquire_command(self):
         # do not call this function directly
@@ -204,7 +222,6 @@ class AgentBasic(AgentProperties, AgentCommunication):
         msg.command = "on_agent_fin"
         msg.kwargs = downstream
 
-
         if msg.downstream_split_override is not None: # allow one agent to wake up multiple children
 
             # warning: when `downstream_split_override` is set, 
@@ -219,11 +236,9 @@ class AgentBasic(AgentProperties, AgentCommunication):
 
         else: # normal case
 
-
             # for switch agent, add downstream_override
             if downstream.get("downstream_override", None):
                 msg.downstream_override = downstream["downstream_override"]
-
             # for groupchat agent, add children_select_override
             if downstream.get("children_select_override", None):
                 msg.children_select_override = downstream["children_select_override"]

@@ -107,12 +107,12 @@ class MasterMindWebSocketServer(PythonMethod_AsyncConnectionMaintainer, PythonMe
                     msg.command = "connect_to_matrix.re"
                     msg.dst, msg.src = msg.src, msg.dst
                     msg.kwargs = client_id
-                    await websocket.send_bytes(msg.json())
+                    await websocket.send_bytes(msg.model_dump_json())
                     await self.maintain_agentcraft_interface_connection_forever(agentcraft_interface_id, websocket, client_id)
 
             # logger.info("uvicorn starts")
             import uvicorn
-            config = uvicorn.Config(app, host=self.host, port=self.port, log_level="error")
+            config = uvicorn.Config(app, host=self.host, port=self.port, log_level="error", ws_ping_interval=300, ws_ping_timeout=600)
             server = uvicorn.Server(config)
             await server.serve()
 

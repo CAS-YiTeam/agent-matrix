@@ -3,6 +3,9 @@ import asyncio
 import threading
 import uuid
 import copy
+import traceback
+import base64
+
 from loguru import logger
 from fastapi import WebSocket
 from agent_matrix.agent.interaction import InteractionManager
@@ -12,8 +15,9 @@ from typing_extensions import Self
 from rich import print
 from rich.panel import Panel
 from agent_matrix.shared.config_loader import get_conf as agent_matrix_get_conf
-PANEL_WIDTH = agent_matrix_get_conf("PANEL_WIDTH")
+from agent_matrix.shared.dynamic_import import hot_reload_class
 
+PANEL_WIDTH = agent_matrix_get_conf("PANEL_WIDTH")
 
 class BaseProxy(object):
     """
@@ -30,7 +34,9 @@ class BaseProxy(object):
                  client_id: str = None,
                  message_queue_out: asyncio.Queue = None,
                  message_queue_in: asyncio.Queue = None,
-                 agent_kwargs: dict = None):
+                 agent_kwargs: dict = None,
+                 run_in_matrix_process: bool = False,
+                 agent_class: str = None):
         """
         初始化BaseProxy对象
 
@@ -67,7 +73,47 @@ class BaseProxy(object):
         self.interaction = InteractionManager(self)
         self.allow_level_up = True
         self.wakeup_lock = threading.Lock()
+        self.run_in_matrix_process = run_in_matrix_process
+        self.agent_class = agent_class
+        self.agent = None # "The real agent is running in another process"
+        if self.run_in_matrix_process:
+            self.agent = self.prepare_agent()
         return
+
+    def prepare_agent(self):
+        agent_ready_event = threading.Event()
+        agent_thread = threading.Thread(target=self.__run_in_matrix_process__, args=(agent_ready_event,), daemon=True)
+        agent_thread.start()
+        agent_ready_event.wait()
+        return self.agent
+
+    def __run_in_matrix_process__(self, agent_ready_event):
+        # for special agents that need to run in this process, not in a subprocess, we write the logic here
+        agent_id = self.agent_id
+        agent_class = self.agent_class
+        matrix_host = "run_in_matrix_process"
+        matrix_port = -1
+        agent_init_kwargs = {
+            "agent_id": agent_id,
+            "matrix_host": matrix_host,
+            "matrix_port": matrix_port,
+            "matrix_handle": self.matrix if self.run_in_matrix_process else None,
+            "is_proxy": False,
+        }
+        agent_init_kwargs.update(self.agent_kwargs)
+        if isinstance(agent_class, str):
+            self.agent = hot_reload_class(agent_class)(**agent_init_kwargs)
+        else:
+            self.agent = (agent_class)(**agent_init_kwargs)
+        agent_ready_event.set()
+        try:
+            self.agent.run()
+        except KeyboardInterrupt:
+            print('\nKeyboardInterrupt: Exiting...\n')
+            print('---------------------------------')
+            print(agent_id)
+            traceback.print_exc()
+            print('---------------------------------')
 
     def __enter__(self):
         pass
@@ -108,6 +154,9 @@ class BaseProxy(object):
         Parameters:
         - msg: 要发送的命令
         """
+        if self.run_in_matrix_process:
+            self.agent._receive_from_matrix.put(msg)
+            return
         self.message_queue_send_to_real_agent.put_nowait(msg)
         return
 
@@ -118,6 +167,7 @@ class BaseProxy(object):
         Returns:
         - msg: 接收到的命令
         """
+        raise NotImplementedError
         res = asyncio.run(self.message_queue_get_from_real_agent.get())
         msg: GeneralMsg = pickle.loads(res)
         return msg
@@ -389,14 +439,14 @@ class AgentProxy(AgentProxyLogicFlow):
         super().__init__(**kwargs)
 
 
-
     # @user_fn
     def create_child_agent(self,
                            agent_id: str,
                            agent_class: str,
                            agent_kwargs: dict,
                            remote_matrix_kwargs: dict = None,
-                           blocking:bool = True) -> Self:
+                           blocking:bool = True,
+                           run_in_matrix_process:bool = False) -> Self:
         """ contact matrix to build new agent
 
         Args:
@@ -417,7 +467,8 @@ class AgentProxy(AgentProxyLogicFlow):
                                                                 agent_class=agent_class,
                                                                 agent_kwargs=agent_kwargs,
                                                                 remote_matrix_kwargs=remote_matrix_kwargs,
-                                                                parent=parent)
+                                                                parent=parent,
+                                                                run_in_matrix_process=run_in_matrix_process)
             return child_agent_proxy
         else:
             # async call, create new thread to do this, do not wait
@@ -426,7 +477,6 @@ class AgentProxy(AgentProxyLogicFlow):
                                     args=(agent_id, agent_class, agent_kwargs, remote_matrix_kwargs, parent))
             t.start()
             return None
-
 
     # @user_fn
     def create_child_agent_sequential(self, agent_sequence:list):

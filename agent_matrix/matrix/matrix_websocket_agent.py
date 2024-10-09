@@ -69,6 +69,9 @@ class PythonMethod_AsyncConnectionMaintainer:
                     # logger.info(f'sending agent: {agent_id} \tcnt: {msg_cnt} \tcommand: {msg.command}')
                     if msg.dst == 'matrix':
                         raise NotImplementedError()
+                    agent_proxy = self.search_children_by_id(msg.dst, blocking=True)
+                    if agent_proxy.run_in_matrix_process:
+                        agent_proxy.agent._receive_from_matrix.put(msg)
                     else:
                         # send the message to the real agent
                         await websocket.send_bytes(pickle.dumps(msg))
