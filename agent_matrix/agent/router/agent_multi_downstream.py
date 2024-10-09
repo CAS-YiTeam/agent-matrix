@@ -1,11 +1,35 @@
 from agent_matrix.msg.general_msg import GeneralMsg
 from agent_matrix.msg.general_msg import SpecialDownstreamSet
+from agent_matrix.agent.agent import Agent
 from agent_matrix.agent.structure.agent_structured_output import StructuredOutputAgent
 from textwrap import dedent
 from loguru import logger
+from typing import List
 
-import json
-import os
+
+class SplitAgent(Agent):
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.split_downstream_agent_id: List[str] = kwargs.get("split_downstream_agent_id")
+
+    def agent_task_cycle(self):
+        return
+
+    def on_agent_wakeup(self, kwargs: dict, msg: GeneralMsg):
+        # 1. get history if there is any
+        history = kwargs.get("history", [])
+        # 2. build query
+        main_input = kwargs["main_input"]
+
+        # split downstream
+        downstream = []
+        downstream_split_override = []
+        for i, target in enumerate(self.split_downstream_agent_id):
+            downstream.append({"main_input": main_input, "history": history})
+            downstream_split_override.append(target)
+        msg.downstream_split_override = downstream_split_override
+        return downstream
 
 
 class StructuredArrayOutputAgent(StructuredOutputAgent):
@@ -42,10 +66,4 @@ class StructuredArrayOutputAgent(StructuredOutputAgent):
             downstream_split_override.append(SpecialDownstreamSet.auto_downstream)
 
         msg.downstream_split_override = downstream_split_override
-
-        
-        # 5. finish
-        if self.finish_callback is not None:
-            downstream = self.finish_callback(downstream, kwargs, msg)
         return downstream
-    

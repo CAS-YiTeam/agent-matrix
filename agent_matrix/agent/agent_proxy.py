@@ -324,6 +324,7 @@ class AgentProxyLogicFlow(BaseProxy):
 
         if downstream_override:
             # special case: dynamically override downstream
+            msg.downstream_override = None
             if downstream_override == SpecialDownstreamSet.auto_downstream:
                 self._wakeup_downstream_agent_regular(msg)
             elif downstream_override == SpecialDownstreamSet.return_to_parent:
@@ -563,6 +564,9 @@ class AgentProxy(AgentProxyLogicFlow):
             raise ValueError(f"Cannot find agent {dst_agent_id}, or its parent is not the same with {self.agent_id}")
         self.interaction.create_edge(self.agent_id, dst_agent_id)
         return
+
+    def __rshift__(self, other):
+        return self.create_edge_to(other)
 
     # @user_fn
     def set_downstream_agent(self, dst_agent_id:str):
