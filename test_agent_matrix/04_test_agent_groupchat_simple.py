@@ -1,11 +1,11 @@
+import init_test
 from agent_matrix.matrix.matrix_mastermind import MasterMindMatrix
 from agent_matrix.agent.agent_basic_qa import BasicQaAgent
 from agent_matrix.agent.agent_groupchat_host import GroupChatAgent
 
-mmm = MasterMindMatrix(host='localhost', port=10101, dedicated_server=False)
-mmm.begin_event_loop_non_blocking()
+mmm = MasterMindMatrix().begin_event_loop_non_blocking()
 
-group_chat_master = mmm.create_agent(
+groupchat_host = mmm.create_agent(
     agent_id=f"nest",
     agent_class=GroupChatAgent,
     agent_kwargs={
@@ -13,7 +13,7 @@ group_chat_master = mmm.create_agent(
     }
 )
 
-player_1 = group_chat_master.create_child_agent(
+player_1 = groupchat_host.create_child_agent(
     agent_id=f"player_1",
     agent_class=BasicQaAgent,
     agent_kwargs={
@@ -23,7 +23,7 @@ player_1 = group_chat_master.create_child_agent(
     }
 )
 
-player_2 = group_chat_master.create_child_agent(
+player_2 = groupchat_host.create_child_agent(
     agent_id=f"player_2",
     agent_class=BasicQaAgent,
     agent_kwargs={
@@ -33,7 +33,7 @@ player_2 = group_chat_master.create_child_agent(
     }
 )
 
-sum_up = group_chat_master.create_child_agent(
+sum_up = groupchat_host.create_child_agent(
     agent_id=f"sum_up",
     agent_class=BasicQaAgent,
     agent_kwargs={
@@ -45,10 +45,8 @@ sum_up = group_chat_master.create_child_agent(
 
 
 # 好了，一切就绪，激活所有智能体，让他们开始工作
-group_chat_master.activate_all_children()
+groupchat_host.activate_all_children()
 
-group_chat_master.wakeup(r"""Objective: Get secret number from all players, sum it up.""")
-
-import time
-time.sleep(6000)
-input('主线程进入休眠状态，让智能体们完成任务')
+future = groupchat_host.wakeup(r"""Objective: Get secret number from all players, sum it up.""")
+result = future.wait_and_get_result()
+print(result)

@@ -19,10 +19,15 @@ PANEL_WIDTH = agent_matrix_get_conf("PANEL_WIDTH")
 
 class MasterMindMatrix(MasterMindWebSocketServer):
 
-    def __init__(self, host, port, dedicated_server=False):
+    def __init__(self, host=None, port=None, dedicated_server=False):
         super().__init__()
         self.host = host
+        if self.host is None:
+            self.host = 'localhost'
         self.port = port
+        if self.port is None:
+            from void_terminal.toolbox import find_free_port
+            self.port = find_free_port()
         self.dedicated_server = dedicated_server
         self.direct_children = []
         self.agent_tree = None
